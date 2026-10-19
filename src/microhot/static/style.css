@@ -1,0 +1,182 @@
+/* MicroHOT 微熱 — a private briefing that reads like a temperature chart.
+   One bold element: each story's heat shown as a body-temperature reading.
+   Everything else stays quiet: one column, system type, no cards. */
+
+:root {
+  --paper: #f3f6f6;   /* cool chart paper */
+  --ink: #17212c;     /* deep blue-black ink */
+  --muted: #586572;   /* slate for meta text */
+  --rule: #d5dcdf;    /* hairline between sections */
+  --cool: #3c6a99;    /* below 37.5° */
+  --warm: #8f5c00;    /* 37.5–38.4°: 微熱 */
+  --hot: #b8372b;     /* 38.5° and up */
+  --focus: #1f5fa3;
+  --notice: #e7eef2;
+
+  --sans: "Avenir Next", "Seravek", "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system,
+    "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+  --measure: 38rem;
+  --gutter: 1rem;
+  --col: 3.9rem;      /* width of the reading column */
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #101a22;
+    --ink: #e2e8ed;
+    --muted: #93a0ad;
+    --rule: #25313c;
+    --cool: #86acd6;
+    --warm: #e3ac47;
+    --hot: #ff8a7a;
+    --focus: #8cc2ff;
+    --notice: #172530;
+  }
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 106.25%; /* 17px */
+  line-height: 1.55;
+  -webkit-text-size-adjust: 100%;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  margin: 0 auto;
+  max-width: calc(var(--measure) + 2 * var(--gutter));
+  padding: 0 var(--gutter) 3rem;
+}
+
+:lang(zh-Hant-TW) { line-height: 1.75; letter-spacing: 0.01em; }
+
+a { color: inherit; text-decoration-color: color-mix(in srgb, currentColor 35%, transparent); text-underline-offset: 0.18em; }
+a:hover { text-decoration-color: currentColor; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; border-radius: 2px; }
+
+.skip { position: absolute; left: -999px; }
+.skip:focus { left: var(--gutter); top: 0.5rem; background: var(--paper); padding: 0.25rem 0.5rem; }
+
+/* ---- masthead ---------------------------------------------------------------------- */
+.masthead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem 1.25rem;
+  padding: 1.1rem 0 0.9rem;
+  border-bottom: 1px solid var(--rule);
+}
+.brand { text-decoration: none; font-weight: 700; font-size: 1.05rem; letter-spacing: -0.01em; }
+.brand-zh { margin-left: 0.4em; font-weight: 400; color: var(--muted); }
+.nav { display: flex; flex-wrap: wrap; gap: 0.2rem 1rem; font-size: 0.92rem; }
+.nav a { text-decoration: none; color: var(--muted); }
+.nav a[aria-current="page"] { color: var(--ink); text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 0.35em; }
+.nav .switch { color: var(--ink); }
+
+/* ---- day header -------------------------------------------------------------------- */
+.day { padding: 1.6rem 0 0.4rem; }
+.day h1 { margin: 0; font-size: 1.7rem; line-height: 1.2; letter-spacing: -0.015em; font-weight: 700; }
+.day-high { margin: 0.35rem 0 0; color: var(--muted); }
+.day-high .reading { font-size: 1rem; }
+.note { color: var(--muted); font-size: 0.9rem; margin: 0.3rem 0 0.8rem; }
+.notice { background: var(--notice); padding: 0.75rem 0.9rem; border-left: 3px solid var(--cool); font-size: 0.93rem; }
+.empty { color: var(--muted); padding: 1rem 0; }
+
+/* ---- beats and stories --------------------------------------------------------------- */
+.beat { margin-top: 1.6rem; border-top: 1px solid var(--rule); padding-top: 0.5rem; }
+.beat > h2, section > h2 { font-size: 1rem; font-weight: 600; margin: 0 0 0.4rem; color: var(--muted); letter-spacing: 0; }
+
+.story {
+  display: grid;
+  grid-template-columns: var(--col) minmax(0, 1fr);
+  column-gap: 0.85rem;
+  padding: 0.85rem 0;
+}
+.story + .story { border-top: 1px dashed color-mix(in srgb, var(--rule) 80%, transparent); }
+
+/* The reading: the page's one loud element. Tabular figures keep the column aligned. */
+.reading {
+  font-variant-numeric: tabular-nums lining-nums;
+  font-weight: 700;
+  font-size: 1.02rem;
+  letter-spacing: -0.02em;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+.reading.cool { color: var(--cool); font-weight: 600; }
+.reading.warm { color: var(--warm); }
+.reading.hot { color: var(--hot); }
+.story .reading { padding-top: 0.06rem; }
+.story.lead .reading { font-size: 1.55rem; line-height: 1.05; }
+.story.lead .headline { font-size: 1.28rem; }
+
+.headline { margin: 0; font-size: 1.1rem; line-height: 1.32; font-weight: 650; letter-spacing: -0.01em; }
+.headline a { text-decoration: none; }
+.headline a:hover { text-decoration: underline; }
+:lang(zh-Hant-TW) .headline { line-height: 1.45; letter-spacing: 0.01em; }
+.summary { margin: 0.35rem 0 0; }
+.pending { margin: 0.3rem 0 0; font-size: 0.85rem; color: var(--muted); font-style: italic; }
+.meta { margin: 0.4rem 0 0; font-size: 0.84rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: 0.1rem 0.9rem; }
+.meta a { color: var(--ink); }
+.meta-inline { color: var(--muted); font-size: 0.84rem; }
+
+/* ---- radar --------------------------------------------------------------------------- */
+.radar { margin-top: 2.2rem; border-top: 1px solid var(--rule); padding-top: 0.5rem; }
+.radar-list { list-style: none; margin: 0; padding: 0; }
+.radar-list li { display: grid; grid-template-columns: var(--col) minmax(0, 1fr); column-gap: 0.85rem; padding: 0.4rem 0; }
+.radar-list .reading { font-size: 0.92rem; }
+.radar-body a { text-decoration: none; }
+.radar-body a:hover { text-decoration: underline; }
+.edition-link { margin-top: 2rem; }
+
+/* ---- event page ---------------------------------------------------------------------- */
+.event { padding-top: 1.4rem; }
+.event-head { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 0.9rem; align-items: start; }
+.event-head h1 { margin: 0; font-size: 1.55rem; line-height: 1.25; letter-spacing: -0.015em; }
+.reading.big { font-size: 2.1rem; line-height: 1; }
+.lede { font-size: 1.06rem; margin: 0.9rem 0 0.4rem; }
+.original { font-weight: 600; }
+.event section { margin-top: 1.8rem; border-top: 1px solid var(--rule); padding-top: 0.5rem; }
+.coverage { list-style: none; margin: 0; padding: 0; }
+.coverage li { display: grid; grid-template-columns: 8.5rem 9.5rem minmax(0, 1fr); gap: 0.2rem 0.75rem; padding: 0.35rem 0; font-size: 0.92rem; }
+.coverage time, .coverage .src { color: var(--muted); }
+@media (max-width: 34rem) {
+  .coverage li { grid-template-columns: 1fr; gap: 0; }
+}
+.axes { display: grid; grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr)); gap: 0.4rem 1rem; margin: 0.6rem 0; }
+.axes div { display: flex; flex-direction: column; }
+.axes dt { font-size: 0.84rem; color: var(--muted); }
+.axes dd { margin: 0; display: flex; align-items: center; gap: 0.5rem; font-variant-numeric: tabular-nums; }
+.bar { display: inline-block; width: 6.5rem; height: 0.42rem; background: var(--rule); border-radius: 2px; overflow: hidden; }
+.bar > span { display: block; height: 100%; background: var(--muted); }
+
+/* ---- lists and tables ---------------------------------------------------------------- */
+.edition-list { list-style: none; padding: 0; margin: 0; }
+.edition-list li { padding: 0.45rem 0; border-bottom: 1px solid var(--rule); display: flex; justify-content: space-between; gap: 1rem; }
+.table-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 0.88rem; margin: 0.3rem 0 1rem; }
+th, td { text-align: left; vertical-align: top; padding: 0.4rem 0.6rem 0.4rem 0; border-bottom: 1px solid var(--rule); }
+th { font-weight: 600; color: var(--muted); }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+.status-error td:nth-child(2) { color: var(--hot); }
+section > h3 { font-size: 0.92rem; margin: 1rem 0 0.2rem; }
+
+/* ---- footer -------------------------------------------------------------------------- */
+.colophon { margin-top: 3rem; padding-top: 0.8rem; border-top: 1px solid var(--rule); color: var(--muted); font-size: 0.82rem; }
+.colophon p { margin: 0.25rem 0; }
+.colophon .tagline { color: var(--ink); }
+
+@media (max-width: 26rem) {
+  :root { --col: 3.4rem; }
+  html { font-size: 100%; }
+  .story.lead .reading { font-size: 1.3rem; }
+}
+
+@media print {
+  .nav, .colophon, .radar { display: none; }
+}

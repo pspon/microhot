@@ -1,0 +1,20 @@
+{% extends "base.html.j2" %}
+{% import "_macros.html.j2" as m with context %}
+{% block title %}{{ title }} | {{ site_name }}{% endblock %}
+{% block main %}
+<section class="day" aria-labelledby="edition-title">
+  <h1 id="edition-title">{{ title }}</h1>
+  <p class="note">{% if edition.stories|length == 1 %}{{ t('story_1') }}{% else %}{{ t('stories_n', n=edition.stories|length) }}{% endif %}</p>
+</section>
+{% for g in groups %}
+<section class="beat" aria-labelledby="beat-{{ g.beat }}">
+  <h2 id="beat-{{ g.beat }}">{{ g.label }}</h2>
+  {% for s in g.stories %}
+  {{ m.story(s, relative=false) }}
+  {% endfor %}
+</section>
+{% endfor %}
+{% if not edition.stories %}
+<p class="empty">{{ t('edition_empty') }}</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,25 @@
+{% macro reading(s, size='') -%}
+<span class="reading {{ s.temp_class }}{% if size %} {{ size }}{% endif %}">{{ "%.1f"|format(s.temp) }}°</span>
+{%- endmacro %}
+
+{% macro story(s, lead=false, relative=true) -%}
+<article class="story{% if lead %} lead{% endif %}">
+  {{ reading(s) }}
+  <div class="story-body">
+    <h3 class="headline"><a href="{{ s.url }}">{{ s.title[lang] }}</a></h3>
+    {% if s.summary[lang] %}
+    <p class="summary">{{ s.summary[lang] }}</p>
+    {% elif s.summary['en'] %}
+    <p class="summary" lang="en">{{ s.summary['en'] }}</p>
+    {% endif %}
+    {% if not s.written %}
+    <p class="pending">{{ t('pending') }}</p>
+    {% endif %}
+    <p class="meta">
+      <span>{{ source_line(s) }}</span>
+      <span>{% if relative %}{{ ago(s.last_seen or s.first_seen) }}{% else %}{{ when(s.selected_at or s.first_seen) }}{% endif %}</span>
+      {% if s.id in event_pages %}<a href="{{ prefix }}/e/{{ s.id }}.html">{{ t('details') }}</a>{% endif %}
+    </p>
+  </div>
+</article>
+{%- endmacro %}

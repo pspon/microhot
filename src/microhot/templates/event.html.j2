@@ -1,0 +1,46 @@
+{% extends "base.html.j2" %}
+{% import "_macros.html.j2" as m with context %}
+{% block title %}{{ s.title[lang] }} | {{ site_name }}{% endblock %}
+{% block main %}
+<article class="event">
+  <div class="event-head">
+    {{ m.reading(s, 'big') }}
+    <h1>{{ s.title[lang] }}</h1>
+  </div>
+  {% if s.summary[lang] %}
+  <p class="lede">{{ s.summary[lang] }}</p>
+  {% elif s.summary['en'] %}
+  <p class="lede" lang="en">{{ s.summary['en'] }}</p>
+  {% endif %}
+  {% if not s.written %}
+  <p class="pending">{{ t('pending') }}</p>
+  {% endif %}
+  <p><a class="original" href="{{ s.url }}">{{ t('original') }}: {{ s.source }}</a></p>
+
+  <section aria-labelledby="coverage-title">
+    <h2 id="coverage-title">{{ t('coverage') }}</h2>
+    <p class="note">{{ t('why_temp', temp="%.1f"|format(s.temp), n=sources_label(s.n_sources)) }}</p>
+    <ul class="coverage">
+      {% for l in s.links %}
+      <li><time datetime="{{ l.when }}">{{ when(l.when) }}</time><span class="src">{{ l.source }}</span><a href="{{ l.url }}">{{ l.title }}</a></li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  {% if s.score is not none %}
+  <section aria-labelledby="scoring-title">
+    <h2 id="scoring-title">{{ t('scoring') }}</h2>
+    <p>{{ t('score_line', score=s.score, threshold=threshold) }}{% if s.opinions == 2 %} {{ t('opinions_2') }}{% endif %}</p>
+    <p>{{ beat_label }}, {{ t('type_' ~ s.type) }}, {{ t('tier_' ~ s.tier) }}.</p>
+    <dl class="axes">
+      {% for a in axes_order %}
+      <div><dt>{{ t('axis_' ~ a) }}</dt><dd><span class="bar" aria-hidden="true"><span style="width: {{ s.axes.get(a, 0) * 10 }}%"></span></span><span>{{ s.axes.get(a, 0) }}</span></dd></div>
+      {% endfor %}
+    </dl>
+    {% if s.by %}
+    <p class="note">{{ t('written_by', by=s.by) }}</p>
+    {% endif %}
+  </section>
+  {% endif %}
+</article>
+{% endblock %}

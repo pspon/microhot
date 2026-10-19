@@ -1,0 +1,38 @@
+{% extends "base.html.j2" %}
+{% import "_macros.html.j2" as m with context %}
+{% block main %}
+<section class="day" aria-labelledby="day-title">
+  <h1 id="day-title">{{ day_label }}</h1>
+  {% if high %}
+  <p class="day-high">{{ t('todays_high') }} <span class="reading {{ high_class }}">{{ "%.1f"|format(high) }}°</span></p>
+  {% endif %}
+</section>
+{% if not llm_ready %}
+<p class="notice">{{ t('no_llm') }}</p>
+{% endif %}
+{% for g in groups %}
+<section class="beat" aria-labelledby="beat-{{ g.beat }}">
+  <h2 id="beat-{{ g.beat }}">{{ g.label }}</h2>
+  {% for s in g.stories %}
+  {{ m.story(s, lead=(high is not none and s.temp == high and loop.first)) }}
+  {% endfor %}
+</section>
+{% endfor %}
+{% if not any_stories %}
+<p class="empty">{{ t('empty_today') }}</p>
+{% endif %}
+{% if radar %}
+<section class="radar" aria-labelledby="radar-title">
+  <h2 id="radar-title">{{ t('radar') }}</h2>
+  <p class="note">{{ t('radar_note') }}</p>
+  <ul class="radar-list">
+    {% for s in radar %}
+    <li>{{ m.reading(s) }}<span class="radar-body"><a href="{{ s.url }}">{{ s.title[lang] }}</a> <span class="meta-inline">{{ source_line(s) }}</span></span></li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+{% if latest_edition %}
+<p class="edition-link"><a href="{{ prefix }}/d/{{ latest_edition }}.html">{{ t('latest_edition', date=latest_edition_label) }}</a></p>
+{% endif %}
+{% endblock %}

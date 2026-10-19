@@ -1,0 +1,42 @@
+MicroHOT 微熱
+
+MicroHOT is a new, independent codebase inspired by AIHOT (https://github.com/KKKKhazix/AIHOT).
+It is not affiliated with AIHOT and does not use AIHOT's name or logo.
+
+The following parts are adapted from AIHOT:
+
+- prompts/triage.md: translated and condensed from AIHOT's selection rubric
+  (industry/prompts/selection-score.md) and pre-screen (industry/prompts/prefilter.md),
+  including the five scoring axes and the per-type weights in src/microhot/triage.py.
+- prompts/write.md: translated and adapted from AIHOT's writing prompts
+  (industry/prompts/summarize-article.md, rules-answer-first-summary.md,
+  rules-self-contained-title.md, rules-anti-hallucination.md, rules-domain.md, safety.md).
+- The heat formula (each independent source counted once within 48 hours, halving every
+  24 hours), the rule-built daily edition, and the starter AI sources in config/sources.toml.
+
+AIHOT's license:
+
+MIT License
+
+Copyright (c) 2026 数字生命卡兹克
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+Feed content belongs to its publishers. The site shows short machine-written summaries and
+links to the original articles.

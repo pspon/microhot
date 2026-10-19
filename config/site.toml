@@ -1,0 +1,191 @@
+# MicroHOT 微熱 — site settings.
+# Edit this file on GitHub (the mobile app works); changes apply on the next run.
+
+[site]
+name = "MicroHOT"
+name_zh = "微熱"
+tagline_en = "AI news, served slightly warm."
+tagline_zh = "不燙口的 AI 新聞。"
+# Public URL of the site (your Cloudflare Pages address). The SITE_URL secret overrides it.
+url = "https://microhot.pages.dev"
+timezone = "America/Toronto"
+# The first run at or after this local time builds the daily edition and sends it to your channels.
+edition_after = "06:00"
+beat_order = ["ai", "gov"]
+
+[beats.ai]
+label_en = "AI"
+label_zh = "AI 動態"
+daily_quota = 8
+
+[beats.gov]
+label_en = "Governance & policy"
+label_zh = "治理與政策"
+daily_quota = 5
+
+[selection]
+# Minimum score (0–100) by the best source tier in an event. Starting point: AIHOT's values.
+thresholds = { T1 = 60, "T1.5" = 65, T2 = 76 }
+# Events scoring within this many points of their threshold get a second opinion.
+borderline = 5
+second_opinion = true
+# Events first seen longer ago than this are no longer considered for selection.
+candidate_hours = 36
+
+[fetch]
+# A source's first import only takes items from the last N hours, so there is no backlog to pay for.
+first_import_hours = 48
+first_import_undated_max = 5
+# After the first import, items older than this are ignored.
+max_age_hours = 72
+max_items_per_feed = 40
+timeout_s = 20
+workers = 8
+user_agent = "Mozilla/5.0 (compatible; MicroHOT/0.1; private news digest)"
+
+[cluster]
+window_hours = 72
+# "lexical" needs no downloads. "model2vec:minishlab/potion-base-8M" uses a small local
+# embedding model (install the `embed` extra); then raise the threshold to about 0.7.
+embedder = "lexical"
+threshold = 0.2
+
+[heat]
+window_hours = 48
+half_life_hours = 24
+
+[llm]
+# Providers are tried in this order, per step. A provider is used only when it is configured:
+# it is defined below AND its key (plus any ${VAR} in its base_url) is set as a secret.
+# Unconfigured providers are never called and never count as failures.
+triage = ["gemini", "groq", "openrouter", "mistral", "cloudflare", "claude", "deepseek"]
+write = ["gemini", "claude", "groq", "openrouter", "mistral", "cloudflare", "deepseek"]
+triage_batch_size = 20
+write_batch_size = 4
+# Hard caps across all providers (retries included).
+max_calls_per_day = 40
+usd_cap_per_day = 0.05
+triage_text_chars = 600
+write_text_chars = 1500
+recent_events_in_prompt = 25
+
+# ---- Providers ---------------------------------------------------------------------------
+# api: "openai" (any OpenAI-compatible endpoint) or "anthropic" (native Claude API).
+# json_mode: "schema" (strict JSON schema), "object" (JSON mode) or "prompt" (instructions only);
+#            it steps down automatically if a provider rejects the stronger mode.
+# Prices are USD per 1M tokens and only feed the usage page and the daily dollar caps.
+
+[providers.gemini]
+# Google AI Studio key. Free of charge while billing is not enabled on that Google project
+# (free-tier prompts may be used by Google to improve its products).
+api = "openai"
+base_url = "https://generativelanguage.googleapis.com/v1beta/openai"
+models = ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite"]
+key_env = "GEMINI_API_KEY"
+json_mode = "schema"
+free = true
+extra = { reasoning_effort = "low" }
+
+[providers.groq]
+api = "openai"
+base_url = "https://api.groq.com/openai/v1"
+models = ["openai/gpt-oss-120b", "qwen/qwen3.8-27b"]
+key_env = "GROQ_API_KEY"
+json_mode = "object"
+free = true
+
+[providers.openrouter]
+# Free models end in ":free"; "openrouter/free" picks any available free model.
+api = "openai"
+base_url = "https://openrouter.ai/api/v1"
+models = ["google/gemma-4-31b-it:free", "nvidia/nemotron-3-super-120b-a12b:free", "openrouter/free"]
+key_env = "OPENROUTER_API_KEY"
+json_mode = "object"
+free = true
+
+[providers.mistral]
+api = "openai"
+base_url = "https://api.mistral.ai/v1"
+models = ["mistral-small-latest"]
+key_env = "MISTRAL_API_KEY"
+json_mode = "object"
+free = true
+
+[providers.cloudflare]
+# Workers AI daily free allowance. Needs a token with Workers AI permission (separate from the
+# Pages deploy token) and CLOUDFLARE_ACCOUNT_ID.
+api = "openai"
+base_url = "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/ai/v1"
+models = ["@cf/openai/gpt-oss-120b"]
+key_env = "CLOUDFLARE_AI_TOKEN"
+json_mode = "prompt"
+free = true
+
+[providers.claude]
+# Native Claude API: schema-checked JSON and prompt caching.
+api = "anthropic"
+base_url = "https://api.anthropic.com/v1"
+models = ["claude-haiku-5-5"]
+key_env = "ANTHROPIC_API_KEY"
+json_mode = "schema"
+price_in = 0.10
+price_out = 0.50
+price_cached_in = 0.01
+usd_cap_per_day = 0.03
+extra = { thinking = { type = "disabled" } }
+
+[providers.deepseek]
+api = "openai"
+base_url = "https://api.deepseek.com"
+models = ["deepseek-flash"]
+key_env = "DEEPSEEK_API_KEY"
+json_mode = "object"
+price_in = 0.30
+price_out = 1.20
+price_cached_in = 0.006
+usd_cap_per_day = 0.03
+extra = { thinking = { type = "disabled" } }
+
+# Any other OpenAI-compatible endpoint works the same way, for example:
+# [providers.openai]
+# api = "openai"
+# base_url = "https://api.openai.com/v1"
+# models = ["<current small model>"]
+# key_env = "OPENAI_API_KEY"
+# max_tokens_param = "max_completion_tokens"
+# price_in = 0.05
+# price_out = 0.40
+#
+# [providers.ollama]            # e.g. your home server behind a tunnel; no key needed
+# api = "openai"
+# base_url = "${OLLAMA_URL}/v1"
+# models = ["qwen3:8b"]
+# json_mode = "object"
+# free = true
+# (then add "openai" / "ollama" to the triage and write lists above)
+
+# ---- Delivery ----------------------------------------------------------------------------
+# The private web page is always built; the channels below link back to it.
+# A channel runs only when enabled here AND its secrets are set.
+
+[channels.github_issue]
+# Posts the morning edition as an issue in this repo (push notification in the GitHub app).
+enabled = true
+lang = "en"            # "en", "zh-TW" or "both"
+close_previous = true
+label = "edition"
+
+[channels.email]
+# Needs SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD and EMAIL_TO (Gmail: an app password).
+enabled = true
+lang = "both"
+
+[channels.telegram]
+# Needs TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID.
+enabled = true
+lang = "en"
+max_stories = 8
+
+[retention]
+items_days = 30
+events_days = 30

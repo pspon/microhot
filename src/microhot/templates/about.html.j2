@@ -1,0 +1,88 @@
+{% extends "base.html.j2" %}
+{% block title %}{{ t('about_title') }} | {{ site_name }}{% endblock %}
+{% macro usage_table(rows) -%}
+{% if rows %}
+<div class="table-wrap"><table>
+  <thead><tr><th scope="col">{{ t('col_provider') }}</th><th scope="col" class="num">{{ t('col_calls') }}</th><th scope="col" class="num">{{ t('col_in') }}</th><th scope="col" class="num">{{ t('col_out') }}</th><th scope="col" class="num">{{ t('col_cost') }}</th></tr></thead>
+  <tbody>
+  {% for name, row in rows|dictsort %}
+    <tr><td>{{ name }}</td><td class="num">{{ row.calls }}</td><td class="num">{{ "{:,}".format(row['in'] + row.cached) }}</td><td class="num">{{ "{:,}".format(row.out) }}</td><td class="num">${{ "%.4f"|format(row.usd) }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+{% else %}
+<p class="note">{{ t('no_usage') }}</p>
+{% endif %}
+{%- endmacro %}
+{% block main %}
+<section class="day" aria-labelledby="about-title">
+  <h1 id="about-title">{{ t('about_title') }}</h1>
+  <p class="note">{{ t('about_intro') }}</p>
+</section>
+
+<section aria-labelledby="usage-title">
+  <h2 id="usage-title">{{ t('about_usage') }}</h2>
+  <p class="note">{{ t('caps_line', calls=caps.calls, usd=caps.usd) }}</p>
+  <h3>{{ t('usage_today') }}</h3>
+  {{ usage_table(usage_today) }}
+  <h3>{{ t('usage_month') }}</h3>
+  {{ usage_table(usage_month) }}
+</section>
+
+<section aria-labelledby="models-title">
+  <h2 id="models-title">{{ t('about_models') }}</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th scope="col">{{ t('col_provider') }}</th><th scope="col">{{ t('col_steps') }}</th><th scope="col">{{ t('col_status') }}</th><th scope="col">{{ t('col_price') }}</th></tr></thead>
+    <tbody>
+    {% for p in providers %}
+      <tr><td>{{ p.name }}<br><span class="meta-inline">{{ p.models }}</span></td><td>{{ p.steps }}</td><td>{{ p.status }}</td><td>{{ p.price }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+
+<section aria-labelledby="misses-title">
+  <h2 id="misses-title">{{ t('about_misses') }}</h2>
+  <p class="note">{{ t('about_misses_note') }}</p>
+  {% if misses %}
+  <div class="table-wrap"><table>
+    <thead><tr><th scope="col" class="num">{{ t('col_score') }}</th><th scope="col" class="num">{{ t('col_needs') }}</th><th scope="col">{{ t('col_source') }}</th></tr></thead>
+    <tbody>
+    {% for r in misses %}
+      <tr><td class="num">{{ r.score }}</td><td class="num">{{ r.threshold }}</td><td><a href="{{ r.url }}">{{ r.title }}</a><br><span class="meta-inline">{{ t('type_' ~ r.type) }}, {{ r.tier }}</span></td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}
+  <p class="note">{{ t('no_usage') }}</p>
+  {% endif %}
+</section>
+
+<section aria-labelledby="sources-title">
+  <h2 id="sources-title">{{ t('about_sources') }}</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th scope="col">{{ t('col_source') }}</th><th scope="col">{{ t('col_status') }}</th><th scope="col" class="num">{{ t('col_new') }}</th><th scope="col" class="num">{{ t('col_total') }}</th></tr></thead>
+    <tbody>
+    {% for s in sources %}
+      <tr class="status-{{ s.status }}"><td><a href="{{ s.url }}">{{ s.name }}</a><br><span class="meta-inline">{{ s.beat }}, {{ s.tier }}{% if not s.enabled %}, paused{% endif %}</span></td><td>{{ s.status }}{% if s.error %}<br><span class="meta-inline">{{ s.error }}</span>{% endif %}</td><td class="num">{{ s.new }}</td><td class="num">{{ s.total }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+
+<section aria-labelledby="runs-title">
+  <h2 id="runs-title">{{ t('about_runs') }}</h2>
+  {% if runs %}
+  <div class="table-wrap"><table>
+    <thead><tr><th scope="col">{{ t('col_when') }}</th><th scope="col" class="num">{{ t('col_items') }}</th><th scope="col" class="num">{{ t('col_picked') }}</th><th scope="col" class="num">{{ t('col_written') }}</th><th scope="col" class="num">{{ t('col_calls') }}</th><th scope="col" class="num">{{ t('col_errors') }}</th></tr></thead>
+    <tbody>
+    {% for r in runs %}
+      <tr><td>{{ when(r.started) }}</td><td class="num">{{ r.counts.new_items }}</td><td class="num">{{ r.counts.selected }}</td><td class="num">{{ r.counts.written }}</td><td class="num">{{ r.llm.calls if r.llm else 0 }}</td><td class="num">{{ r.errors|length }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}
+  <p class="note">{{ t('no_usage') }}</p>
+  {% endif %}
+</section>
+{% endblock %}

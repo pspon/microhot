@@ -1,0 +1,17 @@
+{% extends "base.html.j2" %}
+{% block title %}{{ t('editions_title') }} | {{ site_name }}{% endblock %}
+{% block main %}
+<section class="day" aria-labelledby="editions-title">
+  <h1 id="editions-title">{{ t('editions_title') }}</h1>
+  <p class="note">{{ t('editions_note') }}</p>
+</section>
+{% if editions %}
+<ul class="edition-list">
+  {% for ed in editions %}
+  <li><a href="{{ prefix }}/d/{{ ed.date }}.html">{{ ed.label }}</a> <span class="meta-inline">{% if ed.count == 1 %}{{ t('story_1') }}{% else %}{{ t('stories_n', n=ed.count) }}{% endif %}</span></li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="empty">{{ t('edition_empty') }}</p>
+{% endif %}
+{% endblock %}

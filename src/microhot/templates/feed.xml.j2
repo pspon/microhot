@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+<channel>
+<title>{{ site_name }} {{ site_name_zh }}</title>
+<link>{{ site_url }}{{ prefix }}/</link>
+<description>{{ tagline }}</description>
+<language>{{ 'en' if lang == 'en' else 'zh-tw' }}</language>
+{% for s in stories %}
+<item>
+<title>{{ s.title[lang] }}</title>
+<link>{{ site_url }}{{ prefix }}/e/{{ s.id }}.html</link>
+<guid isPermaLink="false">{{ s.id }}</guid>
+<pubDate>{{ rfc822(s.selected_at or s.first_seen) }}</pubDate>
+<description>{{ s.summary[lang] or s.summary['en'] }} ({{ s.source }}: {{ s.url }})</description>
+</item>
+{% endfor %}
+</channel>
+</rss>

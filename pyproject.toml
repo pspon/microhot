@@ -1,0 +1,32 @@
+[project]
+name = "microhot"
+version = "0.1.0"
+description = "MicroHOT 微熱 — a lightweight, low-token AI + AI-governance news digest (EN + 繁中)."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "httpx>=0.27",
+  "feedparser>=6.0.11",
+  "jinja2>=3.1.4",
+  "opencc-python-reimplemented>=0.1.7",
+]
+
+[project.optional-dependencies]
+embed = ["model2vec>=0.4"]
+
+[project.scripts]
+microhot = "microhot.__main__:main"
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/microhot"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

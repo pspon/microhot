@@ -1,0 +1,240 @@
+"""Interface strings and date formatting for English and Traditional Chinese (Taiwan)."""
+
+from __future__ import annotations
+
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
+STRINGS: dict[str, dict[str, str]] = {
+    "en": {
+        "html_lang": "en",
+        "nav_today": "Today",
+        "nav_editions": "Editions",
+        "nav_about": "About",
+        "switch_label": "中文",
+        "switch_title": "Read in Traditional Chinese",
+        "updated": "Updated {time}.",
+        "todays_high": "Today's high",
+        "empty_today": "Nothing has cleared the bar in the last 24 hours. Stories still being weighed are under “On the radar”.",
+        "no_llm": "Summaries are off because no model provider is configured. Add a key (see docs/SETUP.md) and they appear on the next run.",
+        "radar": "On the radar",
+        "radar_note": "Recent stories that were not picked, warmest first.",
+        "sources_n": "{n} sources",
+        "source_1": "1 source",
+        "and_more": "{name} and {n} more",
+        "ago_min": "{n} min ago",
+        "ago_hour": "{n} h ago",
+        "ago_day": "{n} d ago",
+        "original": "Original",
+        "details": "Details",
+        "pending": "Summary pending",
+        "edition_title": "Morning edition, {date}",
+        "edition_empty": "No stories were picked for this edition.",
+        "editions_title": "Editions",
+        "editions_note": "One edition each morning, built from the stories picked since the previous one.",
+        "stories_n": "{n} stories",
+        "story_1": "1 story",
+        "coverage": "Coverage",
+        "why_temp": "{temp}° means {n} in the last 48 hours; each source counts once and cools by half every 24 hours.",
+        "scoring": "Scoring",
+        "score_line": "Score {score} of 100; this source tier needs {threshold}.",
+        "opinions_2": "Averaged over two opinions.",
+        "written_by": "Written by {by}.",
+        "about_title": "About",
+        "feed": "RSS feed",
+        "footer": "Private briefing. Summaries are machine-written from the linked articles; check the originals before relying on them.",
+        "beat_ai": "AI",
+        "beat_gov": "Governance & policy",
+        "axis_sig": "Substance",
+        "axis_nov": "New information",
+        "axis_cred": "Evidence",
+        "axis_res": "Resonance",
+        "axis_act": "Actionability",
+        "type_model_release": "Model release",
+        "type_product_launch": "Product launch",
+        "type_tool_or_prompt": "Tool or prompt",
+        "type_research_paper": "Research",
+        "type_industry_event": "Industry news",
+        "type_opinion_analysis": "Opinion and analysis",
+        "type_tutorial_explainer": "Tutorial or explainer",
+        "type_policy_action": "Policy action",
+        "type_governance_analysis": "Governance analysis",
+        "type_off_topic": "Off topic",
+        "tier_T1": "official source",
+        "tier_T1.5": "semi-official source",
+        "tier_T2": "media or analysis source",
+        "skip": "Skip to content",
+        "latest_edition": "Latest edition: {date}",
+        "not_found": "This page does not exist, or the story has aged out of the archive.",
+        "back_today": "Go to today's stories",
+        "about_intro": "How this briefing is put together, what it costs, and whether every feed is working.",
+        "about_sources": "Sources",
+        "about_models": "Models",
+        "about_usage": "Usage",
+        "about_runs": "Recent runs",
+        "about_misses": "Near misses",
+        "about_misses_note": "Unpicked stories closest to their threshold. A negative gap means the story cleared the bar but its beat's daily quota was full. Tune thresholds and quotas in config/site.toml.",
+        "col_source": "Source",
+        "col_status": "Status",
+        "col_new": "New",
+        "col_total": "Total",
+        "col_provider": "Provider",
+        "col_models": "Models",
+        "col_steps": "Used for",
+        "col_price": "Price",
+        "col_calls": "Calls",
+        "col_in": "Input tokens",
+        "col_out": "Output tokens",
+        "col_cost": "Cost",
+        "col_when": "When",
+        "col_items": "New items",
+        "col_picked": "Picked",
+        "col_written": "Written",
+        "col_errors": "Errors",
+        "col_score": "Score",
+        "col_needs": "Needs",
+        "col_gap": "Gap",
+        "usage_today": "Today",
+        "usage_month": "This month",
+        "caps_line": "Daily caps across all providers: {calls} calls and ${usd}.",
+        "no_usage": "No model calls yet.",
+        "read_site": "Read on the site",
+    },
+    "zh-TW": {
+        "html_lang": "zh-Hant-TW",
+        "nav_today": "今日",
+        "nav_editions": "每日版",
+        "nav_about": "關於",
+        "switch_label": "English",
+        "switch_title": "Read in English",
+        "updated": "更新於 {time}。",
+        "todays_high": "今日最高",
+        "empty_today": "過去 24 小時還沒有新聞通過門檻。仍在評估的新聞列在「持續觀察」。",
+        "no_llm": "尚未設定任何模型服務，因此沒有摘要。加入金鑰（見 docs/SETUP.md）後，下一次執行就會產生。",
+        "radar": "持續觀察",
+        "radar_note": "近期未入選的新聞，依熱度排列。",
+        "sources_n": "{n} 個來源",
+        "source_1": "1 個來源",
+        "and_more": "{name} 等 {total} 個來源",
+        "ago_min": "{n} 分鐘前",
+        "ago_hour": "{n} 小時前",
+        "ago_day": "{n} 天前",
+        "original": "原文",
+        "details": "詳情",
+        "pending": "摘要尚未產生",
+        "edition_title": "{date} 晨報",
+        "edition_empty": "這一期沒有入選的新聞。",
+        "editions_title": "每日版",
+        "editions_note": "每天早上一期，收錄上一期之後入選的新聞。",
+        "stories_n": "{n} 則",
+        "story_1": "1 則",
+        "coverage": "報導來源",
+        "why_temp": "{temp}° 代表過去 48 小時有 {n}報導；每個來源只算一次，熱度每 24 小時減半。",
+        "scoring": "評分",
+        "score_line": "得分 {score}／100；此來源等級的門檻為 {threshold}。",
+        "opinions_2": "為兩次評分的平均。",
+        "written_by": "由 {by} 撰寫。",
+        "about_title": "關於",
+        "feed": "RSS 訂閱",
+        "footer": "私人簡報。摘要由模型根據連結的原文產生，引用前請先確認原文。",
+        "beat_ai": "AI 動態",
+        "beat_gov": "治理與政策",
+        "axis_sig": "份量",
+        "axis_nov": "資訊增量",
+        "axis_cred": "證據",
+        "axis_res": "共鳴",
+        "axis_act": "可用性",
+        "type_model_release": "模型發布",
+        "type_product_launch": "產品上線",
+        "type_tool_or_prompt": "工具或提示詞",
+        "type_research_paper": "研究",
+        "type_industry_event": "產業動態",
+        "type_opinion_analysis": "觀點與分析",
+        "type_tutorial_explainer": "教學與解說",
+        "type_policy_action": "政策行動",
+        "type_governance_analysis": "治理分析",
+        "type_off_topic": "無關",
+        "tier_T1": "官方來源",
+        "tier_T1.5": "半官方來源",
+        "tier_T2": "媒體或分析來源",
+        "skip": "跳到主要內容",
+        "latest_edition": "最新一期：{date}",
+        "not_found": "這個頁面不存在，或該則新聞已超過保存期限。",
+        "back_today": "回到今日新聞",
+        "about_intro": "這份簡報如何產生、花費多少，以及每個來源是否正常。",
+        "about_sources": "來源",
+        "about_models": "模型",
+        "about_usage": "用量",
+        "about_runs": "最近執行",
+        "about_misses": "差一點入選",
+        "about_misses_note": "最接近門檻但未入選的新聞。差距為負數代表分數已過門檻，但該類別今日名額已滿。可在 config/site.toml 調整門檻與名額。",
+        "col_source": "來源",
+        "col_status": "狀態",
+        "col_new": "新增",
+        "col_total": "累計",
+        "col_provider": "服務",
+        "col_models": "模型",
+        "col_steps": "用途",
+        "col_price": "價格",
+        "col_calls": "呼叫",
+        "col_in": "輸入 token",
+        "col_out": "輸出 token",
+        "col_cost": "費用",
+        "col_when": "時間",
+        "col_items": "新項目",
+        "col_picked": "入選",
+        "col_written": "撰寫",
+        "col_errors": "錯誤",
+        "col_score": "分數",
+        "col_needs": "門檻",
+        "col_gap": "差距",
+        "usage_today": "今日",
+        "usage_month": "本月",
+        "caps_line": "所有服務合計的每日上限：{calls} 次呼叫、${usd} 美元。",
+        "no_usage": "尚無模型呼叫。",
+        "read_site": "到網站閱讀",
+    },
+}
+
+_WEEKDAY_ZH = "一二三四五六日"
+
+
+def t(lang: str, key: str, **kwargs) -> str:
+    text = STRINGS.get(lang, STRINGS["en"]).get(key) or STRINGS["en"].get(key, key)
+    return text.format(**kwargs) if kwargs else text
+
+
+def prefix(lang: str) -> str:
+    return "" if lang == "en" else "/zh-tw"
+
+
+def fmt_date(dt: datetime, lang: str, tz: ZoneInfo) -> str:
+    local = dt.astimezone(tz)
+    if lang == "zh-TW":
+        return f"{local.month}月{local.day}日（週{_WEEKDAY_ZH[local.weekday()]}）"
+    return f"{local:%a}, {local:%b} {local.day}"
+
+
+def fmt_time(dt: datetime, lang: str, tz: ZoneInfo) -> str:
+    local = dt.astimezone(tz)
+    hour12 = local.hour % 12 or 12
+    if lang == "zh-TW":
+        return f"{'上午' if local.hour < 12 else '下午'} {hour12}:{local.minute:02d}"
+    return f"{hour12}:{local.minute:02d} {'AM' if local.hour < 12 else 'PM'}"
+
+
+def fmt_datetime(dt: datetime, lang: str, tz: ZoneInfo) -> str:
+    return f"{fmt_date(dt, lang, tz)} {fmt_time(dt, lang, tz)}"
+
+
+def ago(dt: datetime, now: datetime, lang: str) -> str:
+    minutes = max(0, int((now - dt).total_seconds() // 60))
+    if minutes < 60:
+        return t(lang, "ago_min", n=max(1, minutes))
+    if minutes < 48 * 60:
+        return t(lang, "ago_hour", n=minutes // 60)
+    return t(lang, "ago_day", n=minutes // (24 * 60))
+
+
+def sources_label(lang: str, n: int) -> str:
+    return t(lang, "source_1") if n == 1 else t(lang, "sources_n", n=n)

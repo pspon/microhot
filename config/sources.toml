@@ -1,0 +1,250 @@
+# MicroHOT sources.
+#   beat:  "ai" or "gov" (the triage step can move a story to the other beat)
+#   tier:  "T1" official / primary (labs, governments, regulators, standards bodies)
+#          "T1.5" semi-official, "T2" media, newsletters, analysis, individuals
+#   include / exclude: optional regex lists, matched case-insensitively against title + text.
+#          Rules run before any model call, so filtering broad feeds here costs nothing.
+# Set enabled = false to pause a source. Feed status shows on the site's About page.
+
+# ---- AI: official / first-hand (from AIHOT's demo list) ---------------------------------
+
+[[source]]
+id = "openai"
+name = "OpenAI News"
+url = "https://openai.com/news/rss.xml"
+beat = "ai"
+tier = "T1"
+
+[[source]]
+id = "deepmind"
+name = "Google DeepMind"
+url = "https://deepmind.google/blog/rss.xml"
+beat = "ai"
+tier = "T1"
+
+[[source]]
+id = "google-research"
+name = "Google Research"
+url = "https://research.google/blog/rss/"
+beat = "ai"
+tier = "T1"
+
+[[source]]
+id = "huggingface"
+name = "Hugging Face Blog"
+url = "https://huggingface.co/blog/feed.xml"
+beat = "ai"
+tier = "T1"
+
+[[source]]
+id = "microsoft-research"
+name = "Microsoft Research"
+url = "https://www.microsoft.com/en-us/research/feed/"
+beat = "ai"
+tier = "T1"
+
+[[source]]
+id = "nvidia"
+name = "NVIDIA Blog"
+url = "https://blogs.nvidia.com/feed/"
+beat = "ai"
+tier = "T1"
+
+[[source]]
+id = "aws-ml"
+name = "AWS Machine Learning Blog"
+url = "https://aws.amazon.com/blogs/machine-learning/feed/"
+beat = "ai"
+tier = "T1"
+
+[[source]]
+id = "github-ai"
+name = "GitHub Blog · AI & ML"
+url = "https://github.blog/ai-and-ml/feed/"
+beat = "ai"
+tier = "T1"
+
+[[source]]
+id = "mistral"
+name = "Mistral AI"
+url = "https://mistral.ai/news/rss"
+beat = "ai"
+tier = "T1"
+
+[[source]]
+id = "bair"
+name = "Berkeley AI Research"
+url = "https://bair.berkeley.edu/blog/feed.xml"
+beat = "ai"
+tier = "T1"
+
+# ---- AI: media and newsletters ----------------------------------------------------------
+
+[[source]]
+id = "verge-ai"
+name = "The Verge · AI"
+url = "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml"
+beat = "ai"
+tier = "T2"
+
+[[source]]
+id = "techcrunch-ai"
+name = "TechCrunch · AI"
+url = "https://techcrunch.com/category/artificial-intelligence/feed/"
+beat = "ai"
+tier = "T2"
+
+[[source]]
+id = "ars-ai"
+name = "Ars Technica · AI"
+url = "https://arstechnica.com/ai/feed/"
+beat = "ai"
+tier = "T2"
+
+[[source]]
+id = "mit-tr-ai"
+name = "MIT Technology Review · AI"
+url = "https://www.technologyreview.com/topic/artificial-intelligence/feed"
+beat = "ai"
+tier = "T2"
+
+[[source]]
+id = "the-decoder"
+name = "The Decoder"
+url = "https://the-decoder.com/feed/"
+beat = "ai"
+tier = "T2"
+
+[[source]]
+id = "simon-willison"
+name = "Simon Willison"
+url = "https://simonwillison.net/atom/everything/"
+beat = "ai"
+tier = "T2"
+
+[[source]]
+id = "import-ai"
+name = "Import AI"
+url = "https://importai.substack.com/feed"
+beat = "ai"
+tier = "T2"
+
+[[source]]
+id = "latent-space"
+name = "Latent Space"
+url = "https://www.latent.space/feed"
+beat = "ai"
+tier = "T2"
+
+[[source]]
+id = "betakit"
+name = "BetaKit (Canadian tech, AI only)"
+url = "https://betakit.com/feed/"
+beat = "ai"
+tier = "T2"
+include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'generative', '\bLLMs?\b', 'chatbot']
+
+# ---- Governance: Canada -----------------------------------------------------------------
+
+[[source]]
+id = "gc-news"
+name = "Government of Canada news (AI only)"
+url = "https://api.io.canada.ca/io-server/gc/news/en/v2?sort=publishedDate&orderBy=desc&publishedDate%3E=2021-07-23&pick=100&format=atom&atomtitle=Canada%20news"
+homepage = "https://www.canada.ca/en/news.html"
+beat = "gov"
+tier = "T1"
+include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'generative', 'algorithm', 'automated decision', 'AI Safety Institute', 'sovereign compute']
+
+[[source]]
+id = "ised"
+name = "Innovation, Science and Economic Development Canada (AI only)"
+url = "https://api.io.canada.ca/io-server/gc/news/en/v2?dept=departmentofindustry&sort=publishedDate&orderBy=desc&publishedDate%3E=2021-07-23&pick=50&format=atom&atomtitle=Innovation,%20Science%20and%20Economic%20Development%20Canada"
+homepage = "https://ised-isde.canada.ca/site/media-room/en"
+beat = "gov"
+tier = "T1"
+include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'generative', 'algorithm', 'compute', 'digital']
+
+[[source]]
+id = "opc"
+name = "Office of the Privacy Commissioner of Canada"
+url = "https://www.priv.gc.ca/en/rss/news/"
+homepage = "https://www.priv.gc.ca/en/opc-news/"
+beat = "gov"
+tier = "T1"
+
+[[source]]
+id = "ontario-news"
+name = "Ontario Newsroom (AI only)"
+url = "https://news.ontario.ca/en/rss/news.rss"
+homepage = "https://news.ontario.ca/en"
+beat = "gov"
+tier = "T1"
+include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'generative', 'algorithm', 'cyber', 'digital']
+
+[[source]]
+id = "srinstitute"
+name = "Schwartz Reisman Institute (U of T)"
+url = "https://srinstitute.utoronto.ca/news?format=rss"
+beat = "gov"
+tier = "T2"
+
+[[source]]
+id = "maiei"
+name = "Montreal AI Ethics Institute"
+url = "https://montrealethics.ai/feed/"
+beat = "gov"
+tier = "T2"
+
+[[source]]
+id = "policy-options"
+name = "Policy Options (IRPP, AI only)"
+url = "https://policyoptions.irpp.org/feed/"
+beat = "gov"
+tier = "T2"
+include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'algorithm', 'automated']
+
+# ---- Governance: global ---------------------------------------------------------------
+
+[[source]]
+id = "eu-ai-act"
+name = "The EU AI Act Newsletter"
+url = "https://artificialintelligenceact.substack.com/feed"
+beat = "gov"
+tier = "T2"
+
+[[source]]
+id = "uk-aisi"
+name = "UK AI Security Institute"
+url = "https://www.gov.uk/government/organisations/ai-security-institute.atom"
+beat = "gov"
+tier = "T1"
+
+[[source]]
+id = "nist"
+name = "NIST news (AI only)"
+url = "https://www.nist.gov/news-events/news/rss.xml"
+beat = "gov"
+tier = "T1"
+include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'generative']
+
+[[source]]
+id = "techpolicy-press"
+name = "Tech Policy Press (AI only)"
+url = "https://www.techpolicy.press/rss/"
+beat = "gov"
+tier = "T2"
+include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'algorithm', 'generative', 'chatbot', '\bLLMs?\b']
+
+[[source]]
+id = "normaltech"
+name = "AI as Normal Technology"
+url = "https://www.normaltech.ai/feed"
+beat = "gov"
+tier = "T2"
+
+[[source]]
+id = "ada-lovelace"
+name = "Ada Lovelace Institute"
+url = "https://www.adalovelaceinstitute.org/feed/"
+beat = "gov"
+tier = "T2"

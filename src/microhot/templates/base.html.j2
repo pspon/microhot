@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="{{ t('html_lang') }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f3f6f6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#101a22" media="(prefers-color-scheme: dark)">
+<title>{% block title %}{{ site_name }} {{ site_name_zh }}{% endblock %}</title>
+<link rel="stylesheet" href="/static/style.css?v={{ css_version }}">
+<link rel="icon" href="/static/icon.svg" type="image/svg+xml">
+<link rel="alternate" type="application/rss+xml" title="{{ site_name }}" href="{{ prefix }}/feed.xml">
+<link rel="alternate" hreflang="{{ alt_lang_attr }}" href="{{ alt_url }}">
+</head>
+<body>
+<a class="skip" href="#main">{{ t('skip') }}</a>
+<header class="masthead">
+  <a class="brand" href="{{ prefix }}/"><span class="brand-en">{{ site_name }}</span><span class="brand-zh" lang="zh-Hant-TW">{{ site_name_zh }}</span></a>
+  <nav class="nav">
+    <a href="{{ prefix }}/"{% if page == 'today' %} aria-current="page"{% endif %}>{{ t('nav_today') }}</a>
+    <a href="{{ prefix }}/editions.html"{% if page in ('editions', 'edition') %} aria-current="page"{% endif %}>{{ t('nav_editions') }}</a>
+    <a href="{{ prefix }}/about.html"{% if page == 'about' %} aria-current="page"{% endif %}>{{ t('nav_about') }}</a>
+    <a class="switch" href="{{ alt_url }}" hreflang="{{ alt_lang_attr }}" lang="{{ alt_lang_attr }}" title="{{ t('switch_title') }}">{{ t('switch_label') }}</a>
+  </nav>
+</header>
+<main id="main">
+{% block main %}{% endblock %}
+</main>
+<footer class="colophon">
+  <p class="tagline">{{ tagline }}</p>
+  <p>{{ t('footer') }}</p>
+  <p>{{ t('updated', time=updated) }} <a href="{{ prefix }}/feed.xml">{{ t('feed') }}</a></p>
+</footer>
+</body>
+</html>
