@@ -125,9 +125,10 @@ tier = "T2"
 [[source]]
 id = "import-ai"
 name = "Import AI"
-# The Substack feed refuses GitHub's servers (403); the author's blog carries the same issues.
+# Paused: both importai.substack.com/feed and jack-clark.net/feed/ refuse GitHub's servers (HTTP 403).
 url = "https://jack-clark.net/feed/"
 homepage = "https://importai.substack.com"
+enabled = false
 beat = "ai"
 tier = "T2"
 
@@ -237,6 +238,8 @@ name = "Tech Policy Press (AI only)"
 url = "https://www.techpolicy.press/feed/"
 beat = "gov"
 tier = "T2"
+# Paused: /rss/ and /feed/ both return a web page, not a feed.
+enabled = false
 include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'algorithm', 'generative', 'chatbot', '\bLLMs?\b']
 
 [[source]]
@@ -252,3 +255,5 @@ name = "Ada Lovelace Institute"
 url = "https://www.adalovelaceinstitute.org/feed/"
 beat = "gov"
 tier = "T2"
+# Paused: the feed is valid but publishes no items.
+enabled = false
