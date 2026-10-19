@@ -47,6 +47,19 @@ def test_fetch_filters_dedupes_and_respects_etag(project):
     assert again == [] and all(s.status == "not_modified" for s in stats2)
 
 
+def test_fetch_reads_newest_entries_even_when_feed_lists_oldest_first(project):
+    from conftest import rss
+
+    old_first = [(f"Old AI post {i}", f"https://lab.test/old-{i}", NOW - timedelta(days=60 - i), "AI text.") for i in range(50)]
+    old_first.append(("Fresh AI post", "https://lab.test/fresh", NOW - timedelta(hours=1), "AI text."))
+    server = FeedServer({"https://lab.test/feed.xml": rss(old_first)})
+    items, stats = fetch_all(project, {}, {}, NOW, client=server.client())
+    assert [it.title for it in items] == ["Fresh AI post"]
+    empty = FeedServer({"https://media.test/atom.xml": '<?xml version="1.0"?><rss version="2.0"><channel><title>t</title></channel></rss>'})
+    _, stats = fetch_all(project, {}, {}, NOW, client=empty.client())
+    assert {s.source_id: s.status for s in stats}["media"] == "empty"
+
+
 def test_fetch_reports_errors_without_crashing(project):
     server = FeedServer({})
     items, stats = fetch_all(project, {}, {}, NOW, client=server.client())

@@ -125,7 +125,9 @@ tier = "T2"
 [[source]]
 id = "import-ai"
 name = "Import AI"
-url = "https://importai.substack.com/feed"
+# The Substack feed refuses GitHub's servers (403); the author's blog carries the same issues.
+url = "https://jack-clark.net/feed/"
+homepage = "https://importai.substack.com"
 beat = "ai"
 tier = "T2"
 
@@ -175,7 +177,7 @@ tier = "T1"
 [[source]]
 id = "ontario-news"
 name = "Ontario Newsroom (AI only)"
-url = "https://news.ontario.ca/en/rss/news.rss"
+url = "https://news.ontario.ca/newsroom/en/rss/allnews.rss"
 homepage = "https://news.ontario.ca/en"
 beat = "gov"
 tier = "T1"
@@ -207,8 +209,10 @@ include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'algorith
 
 [[source]]
 id = "eu-ai-act"
-name = "The EU AI Act Newsletter"
-url = "https://artificialintelligenceact.substack.com/feed"
+name = "EU Artificial Intelligence Act (FLI)"
+# The Substack newsletter feed refuses GitHub's servers (403); this is the same team's site.
+url = "https://artificialintelligenceact.eu/feed/"
+homepage = "https://artificialintelligenceact.substack.com"
 beat = "gov"
 tier = "T2"
 
@@ -230,7 +234,7 @@ include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'generati
 [[source]]
 id = "techpolicy-press"
 name = "Tech Policy Press (AI only)"
-url = "https://www.techpolicy.press/rss/"
+url = "https://www.techpolicy.press/feed/"
 beat = "gov"
 tier = "T2"
 include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'algorithm', 'generative', 'chatbot', '\bLLMs?\b']

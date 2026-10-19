@@ -23,7 +23,7 @@ SNIPPET_CHARS = 1600
 @dataclass
 class FetchStat:
     source_id: str
-    status: str = "ok"  # ok | not_modified | error
+    status: str = "ok"  # ok | not_modified | empty | error
     http: int | None = None
     entries: int = 0
     new: int = 0
@@ -142,6 +142,11 @@ def fetch_source(
     if not entries and parsed.get("bozo"):
         finish("error", f"not a feed: {parsed.get('bozo_exception')}"[:200])
         return [], stat, state
+    if not entries:
+        finish("empty", "the feed has no entries")
+        return [], stat, state
+    # Some feeds list oldest first; look at the newest entries (undated ones keep feed order, last).
+    entries.sort(key=lambda e: (_entry_time(e) is None, -(_entry_time(e) or now).timestamp()))
 
     first_import = not state.get("first_ok")
     undated_budget = int(cfg["first_import_undated_max"])
