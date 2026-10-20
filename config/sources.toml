@@ -506,48 +506,90 @@ include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'generati
 # ---- Canada & Ontario: news searches -----------------------------------------------------
 # Bing News searches (Canadian edition, newest first) mirroring the daily public-sector AI watch.
 # Each outlet in the results counts as its own source, and links go straight to the article.
-# Bing's RSS is for personal, non-commercial use, which this is. Bing returns a handful of results
-# per search, so the searches are narrow; pause_s keeps them a few seconds apart.
+# Bing's RSS is for personal, non-commercial use, which this is. Keep each search to plain words and
+# quoted phrases: Bing's RSS ignores OR and brackets and then returns unrelated news. It returns about
+# 10 results per search, so the searches are narrow; pause_s keeps them a few seconds apart.
 
 [[source]]
 id = "search-ontario-gov"
 name = "News search: Ontario government AI"
 kind = "search"
-url = "https://www.bing.com/news/search?q=Ontario+%22artificial+intelligence%22+government&format=rss&setlang=en-CA&cc=CA&qft=sortbydate%3d%221%22"
+url = "https://www.bing.com/news/search?q=Ontario+government+%22artificial+intelligence%22&format=rss&setlang=en-CA&cc=CA&qft=sortbydate%3d%221%22"
 homepage = "https://www.bing.com/news"
 beat = "ca"
 tier = "T2"
 pause_s = 3
+include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'generative', 'chatbot', 'algorithm', 'automated', 'deepfake']
 
 [[source]]
-id = "search-ontario-public"
-name = "News search: Ontario hospitals, schools and cities on AI"
+id = "search-ontario-health"
+name = "News search: Ontario hospitals and AI"
 kind = "search"
-url = "https://www.bing.com/news/search?q=Ontario+%28hospital+OR+%22school+board%22+OR+city+OR+police%29+%22artificial+intelligence%22&format=rss&setlang=en-CA&cc=CA&qft=sortbydate%3d%221%22"
+url = "https://www.bing.com/news/search?q=Ontario+hospital+%22artificial+intelligence%22&format=rss&setlang=en-CA&cc=CA&qft=sortbydate%3d%221%22"
 homepage = "https://www.bing.com/news"
 beat = "ca"
 tier = "T2"
 pause_s = 3
+include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'generative', 'chatbot', 'algorithm', 'scribe']
 
 [[source]]
-id = "search-federal"
-name = "News search: federal AI policy"
+id = "search-ontario-schools"
+name = "News search: Ontario schools and AI"
 kind = "search"
-url = "https://www.bing.com/news/search?q=%22Evan+Solomon%22+OR+%22Treasury+Board%22+%22artificial+intelligence%22&format=rss&setlang=en-CA&cc=CA&qft=sortbydate%3d%221%22"
+url = "https://www.bing.com/news/search?q=Ontario+school+board+%22artificial+intelligence%22&format=rss&setlang=en-CA&cc=CA&qft=sortbydate%3d%221%22"
 homepage = "https://www.bing.com/news"
 beat = "ca"
 tier = "T2"
 pause_s = 3
+include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'generative', 'chatbot', 'algorithm']
 
 [[source]]
-id = "search-privacy-regulators"
-name = "News search: privacy commissioners and AI (IPC, OPC)"
+id = "search-ai-minister"
+name = "News search: the federal AI minister"
 kind = "search"
-url = "https://www.bing.com/news/search?q=%22Privacy+Commissioner%22+%28Ontario+OR+Canada%29+%28AI+OR+%22artificial+intelligence%22+OR+data%29&format=rss&setlang=en-CA&cc=CA&qft=sortbydate%3d%221%22"
+url = "https://www.bing.com/news/search?q=%22Evan+Solomon%22+AI&format=rss&setlang=en-CA&cc=CA&qft=sortbydate%3d%221%22"
 homepage = "https://www.bing.com/news"
 beat = "ca"
 tier = "T2"
 pause_s = 3
+include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'generative', 'chatbot', 'algorithm', 'compute', 'data cent(re|er)', 'sovereign', 'digital']
+
+[[source]]
+id = "search-federal-service"
+name = "News search: AI in the federal public service"
+kind = "search"
+url = "https://www.bing.com/news/search?q=%22federal+public+service%22+%22artificial+intelligence%22&format=rss&setlang=en-CA&cc=CA&qft=sortbydate%3d%221%22"
+homepage = "https://www.bing.com/news"
+beat = "ca"
+tier = "T2"
+pause_s = 3
+include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'generative', 'chatbot', 'algorithm', 'automated']
+
+[[source]]
+id = "search-ipc"
+name = "News search: Ontario's privacy commissioner (IPC)"
+# Stands in for ipc.on.ca, which refuses GitHub's servers. IPC news is about privacy and access,
+# so there is no AI filter here; the model decides what matters.
+kind = "search"
+url = "https://www.bing.com/news/search?q=%22Information+and+Privacy+Commissioner%22+Ontario&format=rss&setlang=en-CA&cc=CA&qft=sortbydate%3d%221%22"
+homepage = "https://www.bing.com/news"
+beat = "ca"
+tier = "T2"
+pause_s = 3
+require = ['privacy commissioner|IPC|Kosseim']
+
+[[source]]
+id = "search-auditor"
+name = "News search: Ontario's Auditor General on technology"
+# Backs up the auditor-on page, which often times out from GitHub's servers.
+kind = "search"
+url = "https://www.bing.com/news/search?q=%22Auditor+General%22+Ontario+technology&format=rss&setlang=en-CA&cc=CA&qft=sortbydate%3d%221%22"
+homepage = "https://www.bing.com/news"
+beat = "ca"
+tier = "T2"
+pause_s = 3
+require = ['auditor general']
+include = ['artificial intelligence', '\bA\.?I\b', 'technolog', 'cyber', 'digital', '\bdata\b', 'software', 'system']
 
 # GDELT's free news search covers far more outlets, but it rate-limits GitHub's shared servers
 # (HTTP 429 even after a retry), so these are paused. Check sources shows if that changes.

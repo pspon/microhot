@@ -631,6 +631,8 @@ def fetch_all(
 
 # ---- checking sources (`microhot sources --check`) --------------------------------------
 
+CHECK_SAMPLES = 5
+
 
 def check_source(client: httpx.Client, source: Source, settings: Settings, now: datetime, days: int = 14) -> dict:
     """Read one source as if for the first time, without saving anything, and say what it would yield.
@@ -638,7 +640,7 @@ def check_source(client: httpx.Client, source: Source, settings: Settings, now: 
     `matches` counts what passes the keyword rules over the last `days` days (feeds) or on the page
     right now (pages), so a filter that never matches shows up before it costs a week of silence."""
     row = {"id": source.id, "kind": source.kind, "beat": source.beat, "tier": source.tier, "status": "ok", "http": None,
-           "entries": 0, "matches": 0, "newest": None, "error": None, "sample": ""}
+           "entries": 0, "matches": 0, "newest": None, "error": None, "sample": "", "samples": []}
     started = time.monotonic()
     try:
         resp = _get(client, source, {}, settings)
@@ -656,6 +658,7 @@ def check_source(client: httpx.Client, source: Source, settings: Settings, now: 
         hits = [title for _, title in links if len(title) >= PAGE_TITLE_MIN and source.matches(title)]
         row["matches"] = len(hits)
         row["sample"] = hits[0] if hits else (links[0][1] if links else "")
+        row["samples"] = hits[:CHECK_SAMPLES]
         if not links:
             row.update(status="error", error="no links match link_pattern")
     else:
@@ -670,9 +673,13 @@ def check_source(client: httpx.Client, source: Source, settings: Settings, now: 
         for entry in entries:
             when = _entry_time(entry)
             title = html_to_text(entry.get("title"))
+            if source.kind == "search":
+                title = _strip_publisher(title, entry_publisher(entry, unwrap_link(_entry_link(entry, source.url) or "")))
             if (when is None or when >= since) and source.matches(f"{title} {_entry_text(entry)}"):
                 row["matches"] += 1
                 row["sample"] = row["sample"] or title
+                if len(row["samples"]) < CHECK_SAMPLES:
+                    row["samples"].append(title)
     row["ms"] = int((time.monotonic() - started) * 1000)
     return row
 

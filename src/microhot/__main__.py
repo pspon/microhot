@@ -35,6 +35,14 @@ def _source_checks_markdown(rows: list[dict], summary: str) -> str:
         note = (r["error"] or r["sample"] or "").replace("|", "/")[:90]
         lines.append(f"| {r['id']} | {r['kind']} | {r['status']} | {r['entries']} | {r['matches']} | {(r.get('newest') or '')[:10]} | {note} |")
     lines += ["", "Matches: entries in the last 14 days that pass the keyword rules (pages: links on the page now)."]
+    sampled = [r for r in rows if len(r.get("samples") or []) > 1]
+    if sampled:
+        lines += ["", "<details><summary>Sample headlines</summary>", ""]
+        for r in sampled:
+            lines.append(f"**{r['id']}**")
+            lines += [f"- {title}" for title in r["samples"]]
+            lines.append("")
+        lines.append("</details>")
     return "\n".join(lines) + "\n"
 
 
