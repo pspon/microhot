@@ -245,15 +245,6 @@ beat = "ca"
 tier = "T1"
 include = ['artificial intelligence', 'privacy', 'personal information', '\bdata\b', 'cyber', 'digital', 'online', 'algorithm', 'automated', 'technolog', 'telecommunication', 'surveillance', 'lawful access']
 
-[[source]]
-id = "statcan"
-name = "Statistics Canada, The Daily (AI only)"
-url = "https://www150.statcan.gc.ca/rss/dai-quo/0-eng.rss"
-homepage = "https://www150.statcan.gc.ca/n1/dai-quo/index-eng.htm"
-beat = "ca"
-tier = "T1"
-include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'generative', 'automation']
-
 # ---- Canada & Ontario: Ontario, official -------------------------------------------------
 
 [[source]]
@@ -530,4 +521,146 @@ url = "https://www.adalovelaceinstitute.org/feed/"
 beat = "gov"
 tier = "T2"
 # Paused: the feed is valid but publishes no items.
+enabled = false
+
+# ---- Candidates being tested (paused) -------------------------------------------------
+
+[[source]]
+id = "try-bing-on"
+name = "try Bing Ontario"
+kind = "search"
+url = "https://www.bing.com/news/search?q=Ontario+%22artificial+intelligence%22+government&format=rss&setlang=en-CA&cc=CA"
+beat = "ca"
+tier = "T2"
+enabled = false
+
+[[source]]
+id = "try-bing-fed"
+name = "try Bing federal"
+kind = "search"
+url = "https://www.bing.com/news/search?q=%22federal+government%22+%22artificial+intelligence%22+Canada&format=rss&setlang=en-CA&cc=CA"
+beat = "ca"
+tier = "T2"
+enabled = false
+
+[[source]]
+id = "try-cbc-politics"
+name = "try CBC politics"
+url = "https://www.cbc.ca/webfeed/rss/rss-politics"
+beat = "ca"
+tier = "T2"
+enabled = false
+include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'generative', 'chatbot', 'algorithm', 'deepfake']
+
+[[source]]
+id = "try-cbc-toronto"
+name = "try CBC Toronto"
+url = "https://www.cbc.ca/webfeed/rss/rss-canada-toronto"
+beat = "ca"
+tier = "T2"
+enabled = false
+include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'generative', 'chatbot', 'algorithm', 'deepfake']
+
+[[source]]
+id = "try-cbc-canada"
+name = "try CBC Canada"
+url = "https://www.cbc.ca/webfeed/rss/rss-canada"
+beat = "ca"
+tier = "T2"
+enabled = false
+include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'generative', 'chatbot', 'algorithm', 'deepfake']
+
+[[source]]
+id = "try-cbc-tech"
+name = "try CBC technology"
+url = "https://www.cbc.ca/webfeed/rss/rss-technology"
+beat = "ca"
+tier = "T2"
+enabled = false
+include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'generative', 'chatbot', 'algorithm', 'deepfake']
+
+[[source]]
+id = "try-gn-politics"
+name = "try Global News politics"
+url = "https://globalnews.ca/politics/feed/"
+beat = "ca"
+tier = "T2"
+enabled = false
+include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'generative', 'chatbot', 'algorithm', 'deepfake']
+
+[[source]]
+id = "try-gn-toronto"
+name = "try Global News Toronto"
+url = "https://globalnews.ca/toronto/feed/"
+beat = "ca"
+tier = "T2"
+enabled = false
+include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'generative', 'chatbot', 'algorithm', 'deepfake']
+
+[[source]]
+id = "try-gn-canada"
+name = "try Global News Canada"
+url = "https://globalnews.ca/canada/feed/"
+beat = "ca"
+tier = "T2"
+enabled = false
+include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'generative', 'chatbot', 'algorithm', 'deepfake']
+
+[[source]]
+id = "try-citynews"
+name = "try CityNews Toronto"
+url = "https://toronto.citynews.ca/feed/"
+beat = "ca"
+tier = "T2"
+enabled = false
+include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'generative', 'chatbot', 'algorithm', 'deepfake']
+
+[[source]]
+id = "try-globe-politics"
+name = "try Globe politics"
+url = "https://www.theglobeandmail.com/arc/outboundfeeds/rss/category/politics/"
+beat = "ca"
+tier = "T2"
+enabled = false
+include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'generative', 'chatbot', 'algorithm', 'deepfake']
+
+[[source]]
+id = "try-globe-tech"
+name = "try Globe technology"
+url = "https://www.theglobeandmail.com/arc/outboundfeeds/rss/category/business/technology/"
+beat = "ca"
+tier = "T2"
+enabled = false
+include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'generative', 'chatbot', 'algorithm', 'deepfake']
+
+[[source]]
+id = "try-ipc-rss"
+name = "try IPC rss.xml"
+url = "https://www.ipc.on.ca/rss.xml"
+beat = "ca"
+tier = "T1"
+enabled = false
+
+[[source]]
+id = "try-ipc-en-rss"
+name = "try IPC en/rss.xml"
+url = "https://www.ipc.on.ca/en/rss.xml"
+beat = "ca"
+tier = "T1"
+enabled = false
+
+[[source]]
+id = "try-po-rss"
+name = "try Policy Options /rss/"
+url = "https://policyoptions.irpp.org/rss/"
+beat = "ca"
+tier = "T2"
+enabled = false
+
+[[source]]
+id = "try-irpp-feed"
+name = "try IRPP feed"
+url = "https://irpp.org/feed/"
+beat = "ca"
+tier = "T2"
 enabled = false

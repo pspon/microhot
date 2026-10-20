@@ -389,3 +389,25 @@ def test_items_saved_before_publishers_existed_still_load():
     old = {"id": "abc", "source_id": "lab", "url": "https://lab.test/x", "title": "t", "snippet": "", "fetched": "2026-10-19T10:00:00Z"}
     item = Item.from_dict(old)
     assert item.publisher == "" and item.origin == "lab"
+
+
+def test_a_rate_limited_source_is_retried_once(canada, monkeypatch):
+    import microhot.fetch as fetch_mod
+
+    waits = []
+    monkeypatch.setattr(fetch_mod.time, "sleep", lambda s: waits.append(s))
+    routes = base_routes()
+    calls = {"n": 0}
+
+    def handler(request):
+        if str(request.url) == "https://on.test/rss":
+            calls["n"] += 1
+            if calls["n"] == 1:
+                return httpx.Response(429, headers={"retry-after": "7"})
+        ctype, body = routes.get(str(request.url), ("text/plain", ""))
+        return httpx.Response(200 if str(request.url) in routes else 404, text=body, headers={"content-type": ctype})
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    _, stats = fetch_all(canada, {}, {}, NOW, client=client)
+    assert calls["n"] == 2 and 7.0 in waits
+    assert {s.source_id: s for s in stats}["on-news"].status == "ok"

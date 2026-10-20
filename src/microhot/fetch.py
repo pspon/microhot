@@ -353,6 +353,20 @@ class _Seen:
             return True
 
 
+RATE_LIMIT_WAIT_S = 10.0  # one retry after a 429, after Retry-After or this long
+RATE_LIMIT_WAIT_MAX_S = 30.0
+
+
+def _retry_after(value: str | None) -> float | None:
+    if not value:
+        return RATE_LIMIT_WAIT_S
+    try:
+        wait = float(value)
+    except ValueError:
+        return RATE_LIMIT_WAIT_S
+    return wait if 0 <= wait <= RATE_LIMIT_WAIT_MAX_S else None
+
+
 def _get(client: httpx.Client, source: Source, state: dict, settings: Settings) -> httpx.Response:
     cfg = settings.fetch
     headers = {"User-Agent": cfg["user_agent"], "Accept": PAGE_ACCEPT if source.kind == "page" else FEED_ACCEPT}
@@ -360,7 +374,13 @@ def _get(client: httpx.Client, source: Source, state: dict, settings: Settings) 
         headers["If-None-Match"] = state["etag"]
     if state.get("last_modified"):
         headers["If-Modified-Since"] = state["last_modified"]
-    return client.get(source.url, headers=headers, timeout=cfg["timeout_s"], follow_redirects=True)
+    resp = client.get(source.url, headers=headers, timeout=cfg["timeout_s"], follow_redirects=True)
+    if resp.status_code == 429:  # rate limited: wait as asked (briefly) and try once more
+        wait = _retry_after(resp.headers.get("retry-after"))
+        if wait is not None:
+            time.sleep(wait)
+            resp = client.get(source.url, headers=headers, timeout=cfg["timeout_s"], follow_redirects=True)
+    return resp
 
 
 def _admit(
