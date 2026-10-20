@@ -10,7 +10,7 @@ from datetime import datetime
 import httpx
 
 from .config import Settings
-from .textutil import to_iso
+from .textutil import safe_error, to_iso
 
 
 def _queue(state: dict, key: str, text: str, now: datetime, settings: Settings, once_per_day: bool = True) -> None:
@@ -82,7 +82,7 @@ def send_pending(settings: Settings, state: dict, environ) -> dict[str, str]:
             results[name] = "sent"
             delivered_any = True
         except (httpx.HTTPError, OSError, KeyError) as exc:
-            results[name] = f"error: {exc}"[:200]
+            results[name] = "error: " + safe_error(exc)
     if delivered_any or not results or all(r in ("off", "not configured") for r in results.values()):
         state["alerts"]["pending"] = []  # nowhere else to send them; they stay in the run report
     return results

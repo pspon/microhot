@@ -35,7 +35,7 @@ jobs:
             [ -n "${!name}" ] || missing="$missing $name"
           done
           if [ -n "$missing" ]; then
-            echo "::error::Missing secrets:$missing. See docs/SETUP.md, step 3."
+            echo "::error::Missing secrets:$missing. See docs/SETUP.md, step 4."
             exit 1
           fi
 

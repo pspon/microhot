@@ -1,4 +1,4 @@
-# Built site and the data-branch worktree (state lives on the `data` branch, not on main)
+# Built site and the data checkout (state lives in the private data repo, not here)
 public/
 data/
 

@@ -1,4 +1,4 @@
-"""JSON state kept on the `data` branch (checked out at ./data in Actions).
+"""JSON state kept in the private data repo (cloned to ./data in Actions).
 
 Layout:
   items/YYYY-MM-DD.jsonl   fetched items, partitioned by local fetch date

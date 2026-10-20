@@ -14,7 +14,7 @@ from ..config import Settings
 from ..markdown import edition_title as _edition_title
 from ..markdown import review_title as _review_title
 from ..store import Store
-from ..textutil import parse_iso, to_iso, utcnow
+from ..textutil import parse_iso, safe_error, to_iso, utcnow
 from . import email, github_issue, telegram
 
 CHANNELS = {"github_issue": github_issue, "email": email, "telegram": telegram}
@@ -59,6 +59,8 @@ def why_lines(story: dict, langs: list[str]) -> list[str]:
 
 
 def missing_env(module, environ) -> list[str]:
+    if hasattr(module, "missing"):  # channels with alternative variable names
+        return module.missing(environ)
     return [name for name in module.REQUIRED if not str(environ.get(name, "")).strip()]
 
 
@@ -96,7 +98,7 @@ def _send_all(doc: dict, sender: str, settings: Settings, environ, now: datetime
         try:
             getattr(module, sender)(doc, settings, cfg, environ)
         except Exception as exc:  # a failing channel never fails the run
-            results[name] = f"error: {type(exc).__name__}: {exc}"[:240]
+            results[name] = "error: " + safe_error(exc, 240)
             continue
         delivered[name] = to_iso(now)
         results[name] = "sent"

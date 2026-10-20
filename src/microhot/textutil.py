@@ -207,3 +207,15 @@ def cjk_ratio(text: str) -> float:
     if not letters:
         return 0.0
     return sum(1 for c in letters if _CJK.match(c)) / len(letters)
+
+
+_URL = re.compile(r"https?://\S+")
+
+
+def safe_error(exc: BaseException, limit: int = 200) -> str:
+    """Exception text that is fine for public logs: HTTP errors give only the status code, other URLs are removed."""
+    response = getattr(exc, "response", None)
+    status = getattr(response, "status_code", None)
+    if status is not None:
+        return f"{type(exc).__name__}: HTTP {status}"
+    return _URL.sub("<url>", f"{type(exc).__name__}: {exc}")[:limit]

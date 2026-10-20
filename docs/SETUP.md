@@ -1,9 +1,9 @@
 # Setup
 
-Everything is configured with repository secrets: on GitHub, open **Settings → Secrets and variables →
-Actions → New repository secret**. This is easiest from a browser (on a phone, use github.com in the browser).
+Everything is configured with repository secrets and variables: on GitHub, open **Settings → Secrets and
+variables → Actions** (**New repository secret**, or the **Variables** tab). This is easiest from a browser (on a phone, use github.com in the browser).
 
-Nothing breaks while a secret is missing. The run report (Actions → a run → Summary) and the site's About page
+Nothing breaks while a model or channel secret is missing (the data repo in step 3 is the exception). The run report (Actions → a run → Summary) and the site's About page
 say what is skipped and why.
 
 ## 1. A model key (at least one)
@@ -34,14 +34,45 @@ terms and can get the account suspended; it is also unnecessary, since MicroHOT 
    - `CLOUDFLARE_API_TOKEN`: the token
    - `CLOUDFLARE_ACCOUNT_ID`: the account ID
    - `SITE_PASSWORD`: a long password for the site (the username can be anything)
-5. Run the workflow once (step 3). The run creates a Pages project called `microhot` and prints its address in
+5. Run the workflow once (step 4). The run creates a Pages project called `microhot` and prints its address in
    the "Publish to Cloudflare Pages" step. If that address is not `https://microhot.pages.dev` (names are
    shared across all Cloudflare users), add a repository **variable** `SITE_URL` with the real address, so links
    in feeds and messages point to the right place.
 
-Until Cloudflare is set up, each run attaches the built site to the run as a downloadable artifact.
+Until Cloudflare is set up, a run on a private code repo attaches the built site as a downloadable artifact.
+On a public code repo it does not, because anyone signed in to GitHub could download it.
 
-## 3. Run it
+## 3. The private data repo
+
+This code repository can be public, but the digest (stories, editions, ratings, the morning issue) must not be.
+It lives in a second, private repository.
+
+1. **Create the repo.** On GitHub, **New repository**, for example `microhot-data`, set to **Private**. Empty or
+   with a README is fine. Its default branch (`main`) holds the data.
+2. **Create a token.** **GitHub → Settings → Developer settings → Fine-grained tokens → Generate new token**:
+   repository access *Only select repositories* → the data repo only; permissions *Contents: Read and write*,
+   *Issues: Read and write* (*Metadata: Read* is added automatically). Set an expiry and put a reminder in
+   your calendar to renew it: when it expires, runs fail until you replace the secret. If the data repo
+   belongs to an organisation, choose that organisation as the token's *Resource owner*.
+3. **Add it to this repo.** Secret `DATA_TOKEN`: the token. Variable `DATA_REPO`: `owner/name` of the data repo.
+   Optional variable `DATA_BRANCH` if you do not want `main`.
+4. **Get the notifications.** The morning edition, reviews and alerts are now issues in the data repo, so
+   **Watch** that repo (custom: Issues) in the GitHub app. Issues in this repo no longer arrive.
+
+Every run starts by checking this. It stops with an error, before touching any data, if `DATA_REPO` or
+`DATA_TOKEN` is missing, if `DATA_REPO` is not private (or cannot be read with the token), or if it is this
+repository (a different branch of this repo is allowed only when it is private). Nothing is posted or saved
+in this repo, so its workflow token only needs read access.
+
+The data repo's name is masked in the workflow logs.
+
+Moving from the old setup: treat the old public `data` branch, and any issues and run artifacts already
+created in this repo, as exposed. Deleting them does not recall copies someone already fetched, but do it
+before the first private run: copy the `data` branch into the data repo's `main` first if you want to keep
+the history, then delete the branch, close and delete the old issues, and delete the old artifacts
+(Actions → a run → Artifacts).
+
+## 4. Run it
 
 **Actions → MicroHOT run → Run workflow**. After that it runs at about 6:25, 12:25 and 18:25 Toronto time.
 The first run at or after 06:00 builds the morning edition.
@@ -68,14 +99,14 @@ Private RSS feeds (listed on the About page) are at `/feed.xml` for all picks, `
 and `/feed/gov.xml` per beat, and `/feed/editions.xml` for the editions and reviews; add `/zh-tw` in front for
 Traditional Chinese. Readers that support basic auth accept `https://any:PASSWORD@your-site/feed.xml`.
 
-## 4. Delivery channels (optional)
+## 5. Delivery channels (optional)
 
 Each channel runs only when it is `enabled = true` in `config/site.toml` **and** its secrets are set.
 Choose the language with `lang = "en"`, `"zh-TW"` or `"both"`.
 
-- **GitHub app**: on by default and needs no secrets. Each morning's edition is posted as an issue (the previous
-  one is closed), with 👍/👎 boxes for rating (step 5). Weekly and monthly reviews arrive as issues labelled
-  `review`, alerts as issues labelled `alert`. To get a push notification, watch the repository for issues in
+- **GitHub app**: on by default and uses the data repo from step 3. Each morning's edition is posted there as an
+  issue (the previous one is closed), with 👍/👎 boxes for rating (step 6). Weekly and monthly reviews arrive as issues labelled
+  `review`, alerts as issues labelled `alert`. To get a push notification, watch the data repository for issues in
   the GitHub app.
 - **Email**: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `EMAIL_TO` (optional `EMAIL_FROM`).
   For Gmail: turn on 2-Step Verification, create an app password, then use `smtp.gmail.com`, port `465`,
@@ -91,19 +122,19 @@ fails three runs in a row (sent once, until it works again), a model provider tu
 rejected, the daily call cap being reached, or a run where no provider worked. If a run fails outright, GitHub
 emails you about the failed workflow as usual.
 
-## 5. Rate the picks (optional)
+## 6. Rate the picks (optional)
 
 The morning GitHub issue lists each pick with two boxes, 👍 *useful* and 👎 *not for me*, and a short list of
 near misses with a 👍 box for any you would have wanted. Tick them in the GitHub app or on the web; the next
-run reads the last 14 days of issues into `labels.jsonl` on the data branch. Unticking removes the rating.
+run reads the last 14 days of issues into `labels.jsonl` in the data repo. Unticking removes the rating.
 
 The About page shows how many rated picks were useful. Once a tier has 10 ratings (`[feedback] min_labels`),
 it also suggests a threshold, the one that best balances what you liked against what you would have wanted.
-To see the details locally, check out the data branch next to the code and run the eval command:
-`git fetch origin data && git worktree add data FETCH_HEAD`, then `uv run microhot eval`. Thresholds never
+To see the details locally, clone the data repo as `data` next to the code and run the eval command:
+`git clone git@github.com:OWNER/microhot-data.git data`, then `uv run microhot eval`. Thresholds never
 change on their own: move them in `config/site.toml` when the suggestion looks right.
 
-## 6. Tuning
+## 7. Tuning
 
 - **What it covers**: `config/sources.toml` (feeds, news-search feeds and watched pages; beat, tier, keyword
   filters). After changing it, run **Actions → Check sources → Run workflow** (it also runs on pull requests

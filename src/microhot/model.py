@@ -1,4 +1,4 @@
-"""Data records stored on the data branch as JSON."""
+"""Data records stored in the private data repo as JSON."""
 
 from __future__ import annotations
 

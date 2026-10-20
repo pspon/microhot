@@ -1,5 +1,8 @@
-"""Post the morning edition (with 👍/👎 rating boxes), reviews and alerts as issues in this repo.
-The GitHub app sends a push notification for each new issue in a repository you watch."""
+"""Post the morning edition (with 👍/👎 rating boxes), reviews and alerts as issues in the private data repo.
+The GitHub app sends a push notification for each new issue in a repository you watch.
+
+The target repo and token are `DATA_REPO` / `DATA_TOKEN` (the private data repo). When neither is set they
+fall back to `GITHUB_REPOSITORY` / `GITHUB_TOKEN` (the repo running the workflow; only safe when it is private)."""
 
 from __future__ import annotations
 
@@ -9,18 +12,45 @@ from .. import i18n
 from ..config import Settings
 from ..markdown import edition_markdown, review_markdown
 
-REQUIRED = ["GITHUB_TOKEN", "GITHUB_REPOSITORY"]
+REQUIRED = ["DATA_TOKEN", "DATA_REPO"]  # or GITHUB_TOKEN + GITHUB_REPOSITORY, see issue_target
 LABEL_COLORS = {"edition": "c98a00", "review": "3c6a99", "alert": "b8372b"}
+
+
+def issue_target(environ) -> tuple[str, str]:
+    """(repo, token) for the issues channel and the ratings reader; either may be empty.
+
+    If any DATA_* variable is set, only the DATA_* pair is used (a half-set pair is "not configured" and
+    never falls back to the code repo, so a mistake cannot send issues to a public repo). Inside GitHub
+    Actions (GITHUB_ACTIONS=true) there is never a fallback: the code repo may be public. Elsewhere (local
+    runs) the GITHUB_REPOSITORY / GITHUB_TOKEN pair is used when no DATA_* is set. The token is stripped of
+    whitespace."""
+    def get(name: str) -> str:
+        return "".join(str(environ.get(name) or "").split())
+
+    if get("DATA_REPO") or get("DATA_TOKEN") or str(environ.get("GITHUB_ACTIONS") or "") == "true":
+        return get("DATA_REPO"), get("DATA_TOKEN")
+    return get("GITHUB_REPOSITORY"), get("GITHUB_TOKEN")
+
+
+def missing(environ) -> list[str]:
+    """Names of the variables still needed (empty when configured)."""
+    repo, token = issue_target(environ)
+    if repo and token:
+        return []
+    if str(environ.get("DATA_REPO") or "").strip() or str(environ.get("DATA_TOKEN") or "").strip() or environ.get("GITHUB_ACTIONS") == "true":
+        return [n for n, v in (("DATA_REPO", repo), ("DATA_TOKEN", token)) if not v]
+    return ["DATA_REPO + DATA_TOKEN (or GITHUB_REPOSITORY + GITHUB_TOKEN)"]
 
 
 def _client(environ) -> tuple[httpx.Client, str, str]:
     api = str(environ.get("GITHUB_API_URL") or "https://api.github.com").rstrip("/")
+    repo, token = issue_target(environ)
     headers = {
-        "Authorization": f"Bearer {environ['GITHUB_TOKEN']}",
+        "Authorization": f"Bearer {token}",
         "Accept": "application/vnd.github+json",
         "X-GitHub-Api-Version": "2022-11-28",
     }
-    return httpx.Client(timeout=20, headers=headers), api, environ["GITHUB_REPOSITORY"]
+    return httpx.Client(timeout=20, headers=headers), api, repo
 
 
 def _open_issue(environ, title: str, body: str, label: str, close_previous: bool) -> None:

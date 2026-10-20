@@ -104,7 +104,7 @@ def test_followups_reach_the_next_edition(project):
     event = store.load_events()[nova.id]
     assert event.editions == ["2026-10-20", "2026-10-21"] and event.heat_prev is not None
 
-    # Markdown copies on the data branch, and the edition page with its follow-up section.
+    # Markdown copies in the data repo, and the edition page with its follow-up section.
     md = (settings.data_dir / "digest" / "2026-10-21.md").read_text(encoding="utf-8")
     assert "Follow-ups" in md and "Newswire" in md and "---" in md
     assert (settings.data_dir / "digest" / "latest.md").read_text(encoding="utf-8") == md
@@ -258,6 +258,74 @@ def test_ratings_from_issue_checkboxes(project):
     # The About page reports the ratings.
     _run(project, now=NOW + timedelta(hours=6))
     assert "1 of 1 rated picks were useful (100%)" in (project.public_dir / "about.html").read_text(encoding="utf-8")
+
+
+def test_issue_target_prefers_data_repo():
+    from microhot.channels import github_issue
+
+    both = {"DATA_REPO": "me/data", "DATA_TOKEN": "dt", "GITHUB_REPOSITORY": "me/code", "GITHUB_TOKEN": "gt"}
+    assert github_issue.issue_target(both) == ("me/data", "dt")
+    assert github_issue.issue_target({"GITHUB_REPOSITORY": "me/code", "GITHUB_TOKEN": "gt"}) == ("me/code", "gt")
+    assert github_issue.issue_target({"DATA_REPO": "", "DATA_TOKEN": "", "GITHUB_REPOSITORY": "me/code", "GITHUB_TOKEN": "gt"}) == ("me/code", "gt")
+    # A half-set DATA pair never falls back to the code repo.
+    half = {"DATA_REPO": "me/data", "GITHUB_REPOSITORY": "me/code", "GITHUB_TOKEN": "gt"}
+    assert github_issue.issue_target(half) == ("me/data", "")
+    assert github_issue.missing(half) == ["DATA_TOKEN"]
+    assert github_issue.missing(both) == [] and github_issue.missing({"GITHUB_REPOSITORY": "a/b", "GITHUB_TOKEN": "t"}) == []
+    assert github_issue.missing({})
+    # In Actions there is no fallback to the code repo, whatever is set.
+    ci = {"GITHUB_ACTIONS": "true", "GITHUB_REPOSITORY": "me/code", "GITHUB_TOKEN": "gt"}
+    assert github_issue.issue_target(ci) == ("", "") and github_issue.missing(ci) == ["DATA_REPO", "DATA_TOKEN"]
+    assert github_issue.issue_target({**ci, "DATA_REPO": "me/data", "DATA_TOKEN": " dt\n"}) == ("me/data", "dt")
+
+
+def test_safe_error_hides_urls():
+    from microhot.textutil import safe_error
+
+    req = httpx.Request("GET", "https://api.github.com/repos/me/data/issues")
+    status = httpx.HTTPStatusError("boom", request=req, response=httpx.Response(404, request=req))
+    assert safe_error(status) == "HTTPStatusError: HTTP 404"
+    assert "me/data" not in safe_error(httpx.ConnectError("failed for https://api.github.com/repos/me/data/issues now"))
+
+
+def test_issue_channel_posts_to_data_repo(monkeypatch):
+    from microhot.channels import github_issue
+
+    calls = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append((request.method, request.url.path, request.headers["authorization"]))
+        return httpx.Response(200 if request.method == "GET" else 201, json=[] if request.method == "GET" else {})
+
+    real = httpx.Client
+    monkeypatch.setattr(github_issue.httpx, "Client", lambda **kw: real(transport=httpx.MockTransport(handler), **kw))
+    env = {"DATA_REPO": "me/data", "DATA_TOKEN": "dt", "GITHUB_REPOSITORY": "me/code", "GITHUB_TOKEN": "gt"}
+    from types import SimpleNamespace
+
+    github_issue.send_alert("hello", SimpleNamespace(site={"name": "MicroHOT"}), env)
+    assert calls and all(path.startswith("/repos/me/data/") and auth == "Bearer dt" for _, path, auth in calls)
+    assert any(m == "POST" and p == "/repos/me/data/issues" for m, p, _ in calls)
+
+
+def test_ratings_read_from_data_repo(project):
+    _run(project)
+    store = Store(project.data_dir, project.tz)
+    seen = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append((request.url.path, request.headers["authorization"]))
+        return httpx.Response(200, json=[])
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    env = {"DATA_REPO": "me/data", "DATA_TOKEN": "dt", "GITHUB_REPOSITORY": "me/code", "GITHUB_TOKEN": "gt"}
+    assert collect_labels(project, store, env, now=NOW, client=client)["status"] == "ok"
+    assert seen == [("/repos/me/data/issues", "Bearer dt")]
+    # Fallback to the workflow's own repo when DATA_* is not set.
+    seen.clear()
+    collect_labels(project, store, {"GITHUB_REPOSITORY": "me/code", "GITHUB_TOKEN": "gt"}, now=NOW, client=client)
+    assert seen == [("/repos/me/code/issues", "Bearer gt")]
+    # A DATA_REPO without DATA_TOKEN is skipped, not sent to the code repo.
+    assert collect_labels(project, store, {"DATA_REPO": "me/data", "GITHUB_TOKEN": "gt"}, now=NOW, client=client)["status"].startswith("skipped")
 
 
 # ---- failure alerts ------------------------------------------------------------------------
