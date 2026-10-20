@@ -37,7 +37,8 @@ env:
   HAS_CLOUDFLARE: ${{ secrets.CLOUDFLARE_API_TOKEN != '' && secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
   SITE_URL: ${{ vars.SITE_URL || secrets.SITE_URL }}
   # The private repo that holds the data and receives the issues (see docs/SETUP.md, step 3).
-  DATA_REPO: ${{ vars.DATA_REPO }}
+  # A repository variable, or a secret of the same name.
+  DATA_REPO: ${{ vars.DATA_REPO || secrets.DATA_REPO }}
   DATA_BRANCH: ${{ vars.DATA_BRANCH || 'main' }}
 
 jobs:

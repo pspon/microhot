@@ -54,7 +54,7 @@ It lives in a second, private repository.
    *Issues: Read and write* (*Metadata: Read* is added automatically). Set an expiry and put a reminder in
    your calendar to renew it: when it expires, runs fail until you replace the secret. If the data repo
    belongs to an organisation, choose that organisation as the token's *Resource owner*.
-3. **Add it to this repo.** Secret `DATA_TOKEN`: the token. Variable `DATA_REPO`: `owner/name` of the data repo.
+3. **Add it to this repo.** Secret `DATA_TOKEN`: the token. Variable `DATA_REPO` (on the Variables tab; a secret of the same name also works): `owner/name` of the data repo.
    Optional variable `DATA_BRANCH` if you do not want `main`.
 4. **Get the notifications.** The morning edition, reviews and alerts are now issues in the data repo, so
    **Watch** that repo (custom: Issues) in the GitHub app. Issues in this repo no longer arrive.
