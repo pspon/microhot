@@ -411,3 +411,17 @@ def test_a_rate_limited_source_is_retried_once(canada, monkeypatch):
     _, stats = fetch_all(canada, {}, {}, NOW, client=client)
     assert calls["n"] == 2 and 7.0 in waits
     assert {s.source_id: s for s in stats}["on-news"].status == "ok"
+
+
+def test_bing_style_search_items_keep_their_outlet(canada):
+    bing = (
+        '<?xml version="1.0" encoding="utf-8" ?><rss version="2.0" xmlns:News="https://www.bing.com:443/news/search?q=x&amp;format=rss">'
+        "<channel><title>x - BingNews</title><item><title>Ontario public-sector unions push province for workplace AI safeguards</title>"
+        "<link>http://www.bing.com/news/apiclick.aspx?ref=FexRss&amp;aid=&amp;url=https%3a%2f%2fwww.msn.com%2fen-ca%2fnews%2fontario-ai%2far-AA1&amp;c=1</link>"
+        f"<description>Union bargaining units are urged to examine how AI is used at work.</description><pubDate>{format_datetime(H(3))}</pubDate>"
+        "<News:Source>Global News on MSN</News:Source></item></channel></rss>"
+    )
+    routes = {**base_routes(), "https://search.test/rss": ("application/rss+xml", bing)}
+    items, _ = fetch_all(canada, {}, {}, NOW, client=SiteServer(routes).client())
+    found = [it for it in items if it.source_id == "news-search"]
+    assert [(it.url, it.publisher) for it in found] == [("https://www.msn.com/en-ca/news/ontario-ai/ar-AA1", "Global News")]
