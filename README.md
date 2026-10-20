@@ -17,12 +17,15 @@ within a daily quota per beat, get an English and a Traditional Chinese headline
 four stories.
 
 There are three beats: **AI**, **Canada & Ontario** and **Governance & policy**. Canada & Ontario follows how
-Canadian governments use and govern AI: federal and Ontario announcements, the AI minister, Treasury Board,
-privacy and human-rights regulators, the Auditor General, Parliament and the Ontario legislature, Ontario
-Health, the City of Toronto, health-technology trade press, legal and policy analysts, and two news searches
-across Canadian outlets. Its stories carry a one-line **why it matters** note, written in the same call as the
-summary. Sources can be RSS or Atom feeds, news-search feeds (each outlet in the results counts as its own
-source) or plain web pages watched for new links, for sites such as the IPC that have no feed. Heat counts each independent source once over 48 hours, halving every 24 hours, and the site
+Canadian governments use and govern AI: federal and Ontario announcements, the AI minister, Treasury Board, the
+privacy and human-rights commissions, Parliament and the Ontario legislature, Ontario Health, the City of
+Toronto, health-technology trade press, legal and policy analysts, the politics and local sections of CBC,
+Global News, CityNews and the Globe and Mail, and narrow news searches. Its stories carry a one-line **why it
+matters** note, written in the same call as the summary. Sources can be RSS or Atom feeds, news-search feeds
+(each outlet in the results counts as its own source) or plain web pages watched for new links, for sites
+without a feed such as the Prime Minister's news releases.
+
+Heat counts each independent source once over 48 hours, halving every 24 hours, and the site
 shows it as a body temperature: 微熱 means a slight fever. The first run after 06:00 Toronto time builds the
 morning edition and sends it to the channels you have turned on.
 

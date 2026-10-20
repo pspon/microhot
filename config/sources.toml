@@ -283,6 +283,9 @@ tier = "T1"
 [[source]]
 id = "auditor-on"
 name = "Auditor General of Ontario (technology and data reports only)"
+# Paused: auditor.on.ca often times out from GitHub's servers (2 of 3 checks), which would raise
+# failing-feed alerts. "News search: Ontario's Auditor General on technology" stands in for it.
+enabled = false
 kind = "page"
 url = "https://www.auditor.on.ca/"
 link_pattern = '/en/content/(specialreports|annualreports)/.+\.html$'
@@ -533,17 +536,6 @@ pause_s = 3
 include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'generative', 'chatbot', 'algorithm', 'scribe']
 
 [[source]]
-id = "search-ontario-schools"
-name = "News search: Ontario schools and AI"
-kind = "search"
-url = "https://www.bing.com/news/search?q=Ontario+school+board+%22artificial+intelligence%22&format=rss&setlang=en-CA&cc=CA&qft=sortbydate%3d%221%22"
-homepage = "https://www.bing.com/news"
-beat = "ca"
-tier = "T2"
-pause_s = 3
-include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'generative', 'chatbot', 'algorithm']
-
-[[source]]
 id = "search-ai-minister"
 name = "News search: the federal AI minister"
 kind = "search"
@@ -553,17 +545,6 @@ beat = "ca"
 tier = "T2"
 pause_s = 3
 include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'generative', 'chatbot', 'algorithm', 'compute', 'data cent(re|er)', 'sovereign', 'digital']
-
-[[source]]
-id = "search-federal-service"
-name = "News search: AI in the federal public service"
-kind = "search"
-url = "https://www.bing.com/news/search?q=%22federal+public+service%22+%22artificial+intelligence%22&format=rss&setlang=en-CA&cc=CA&qft=sortbydate%3d%221%22"
-homepage = "https://www.bing.com/news"
-beat = "ca"
-tier = "T2"
-pause_s = 3
-include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'generative', 'chatbot', 'algorithm', 'automated']
 
 [[source]]
 id = "search-ipc"
@@ -581,7 +562,7 @@ require = ['privacy commissioner|IPC|Kosseim']
 [[source]]
 id = "search-auditor"
 name = "News search: Ontario's Auditor General on technology"
-# Backs up the auditor-on page, which often times out from GitHub's servers.
+# Stands in for the auditor-on page, which often times out from GitHub's servers.
 kind = "search"
 url = "https://www.bing.com/news/search?q=%22Auditor+General%22+Ontario+technology&format=rss&setlang=en-CA&cc=CA&qft=sortbydate%3d%221%22"
 homepage = "https://www.bing.com/news"

@@ -102,8 +102,9 @@ ground. The watch keeps running alongside for about two weeks; then it is retire
 | Watch | MicroHOT |
 |---|---|
 | Ontario public-sector AI and federal AI policy as two topics | A third beat, `ca`, with its own quota (5 a day), a lower threshold and a "why it matters" line |
-| Web searches per topic | Two GDELT news-search feeds across Canadian English-language outlets; Google Alerts feeds can be added (see `config/sources.toml`) |
-| news.ontario.ca, ipc.on.ca, canada.ca, pm.gc.ca, priv.gc.ca | Ontario Newsroom, GC news, the AI minister, ISED, TBS, Shared Services Canada, StatCan, OPC and LEGISinfo feeds; the IPC, PMO, Auditor General, OHRC, Ontario legislature and Ontario Health pages watched for new links |
+| Web searches per topic | Five narrow Bing News searches (Canadian edition) and AI-only feeds from the politics, Canada and Toronto sections of CBC, Global News, CityNews and the Globe and Mail; Google Alerts feeds can be added (see `config/sources.toml`) |
+| news.ontario.ca, ipc.on.ca, canada.ca, pm.gc.ca, priv.gc.ca | Ontario Newsroom, GC news, the AI minister, ISED, TBS, Shared Services Canada, OPC and LEGISinfo feeds; the PMO, OHRC, Ontario legislature and Ontario Health pages watched for new links |
+| Sites that refuse GitHub's servers | ipc.on.ca (HTTP 403) and auditor.on.ca (timeouts) are paused and covered by news searches for each; GDELT (rate-limited) is paused. The Check sources workflow shows if any of them open up |
 | The broader public sector | City of Toronto, Ontario Health, Canadian Healthcare Technology, Hospital News |
 | Legal and policy analysis (e.g. the Oct 2 Ontario backgrounder's sources) | Hicks Morley, Dentons Data, Teresa Scassa, Michael Geist, Policy Options, Canadian Government Executive, The Dais, The Logic |
 | "Why it matters for an OPS data science lead" | `why_en` and `why_zh` in the same write call, for `ca` stories only |
