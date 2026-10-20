@@ -2,7 +2,7 @@
 
 *AI news, served slightly warm. 不燙口的 AI 新聞。*
 
-A private daily briefing on AI and AI governance, in English and Traditional Chinese (Taiwan), that costs
+A daily briefing on AI and AI governance, in English and Traditional Chinese (Taiwan), that costs
 nothing to host and a handful of model calls a day to run.
 
 MicroHOT keeps the editorial brain of [AIHOT](https://github.com/KKKKhazix/AIHOT) (its selection rubric,
