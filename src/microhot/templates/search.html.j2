@@ -1,0 +1,15 @@
+{% extends "base.html.j2" %}
+{% block title %}{{ t('search_title') }} | {{ site_name }}{% endblock %}
+{% block main %}
+<section class="day" aria-labelledby="search-title">
+  <h1 id="search-title">{{ t('search_title') }}</h1>
+  <p class="note">{{ t('search_note') }}</p>
+</section>
+<form class="search" role="search" action="{{ prefix }}/search.html" onsubmit="return false">
+  <label for="q">{{ t('search_label') }}</label>
+  <input id="q" name="q" type="search" autocomplete="off" spellcheck="false">
+</form>
+<p id="search-status" class="note" role="status" data-loading="{{ t('search_loading') }}" data-none="{{ t('search_none') }}"></p>
+<ul id="results" class="results"></ul>
+{% endblock %}
+{% block scripts %}<script src="/static/search.js?v={{ static_version }}" defer></script>{% endblock %}

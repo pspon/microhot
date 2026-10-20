@@ -32,6 +32,57 @@ second_opinion = true
 # Events first seen longer ago than this are no longer considered for selection.
 candidate_hours = 36
 
+[adjust]
+# Your own nudges, applied by rule before the thresholds (no model calls).
+# boost: points added (or, if negative, taken away) when a story matches a topic id from
+#        config/topics.toml or a pattern (regular expression, case-insensitive).
+# mute:  items matching any of these patterns are dropped while fetching, so they never reach a model.
+boost = [
+  # { topic = "canada", points = 8 },
+  # { pattern = 'open[- ]weights?', points = 5, label = "open weights" },
+]
+mute = [
+  # 'crypto|NFT',
+]
+max_points = 20
+
+[editions]
+# Stories highlighted after the lead story in each morning edition.
+highlights = 3
+# A story from an earlier edition comes back as a follow-up when it gains an official source,
+# or at least this many new sources.
+followup_min_new_sources = 2
+
+[digest]
+# Overviews for big stories: one model call per picked story with at least `min_sources`
+# independent sources, at most `max_per_day` a day. Rewritten when it gains `regrow_sources` more.
+enabled = true
+min_sources = 3
+max_per_day = 2
+regrow_sources = 2
+reports = 6        # reports given to the model, one per source, official sources first
+report_chars = 700
+
+[reviews]
+# Built from the morning editions: last week's on Monday, last month's on the 1st.
+weekly = true
+monthly = true
+weekly_stories = 12
+monthly_stories = 20
+overview = true    # one model call for a short overview; false = stories only
+
+[feedback]
+# Near misses listed in the GitHub issue, where a 👍 means "should have been picked".
+near_misses_in_issue = 5
+# Ratings needed in a tier before the About page and `microhot eval` suggest a threshold.
+min_labels = 10
+
+[alerts]
+# A feed that fails this many runs in a row raises an alert (once, until it works again).
+feed_errors_in_a_row = 3
+# Where alerts go; each channel must also be enabled and configured below. [] turns alerts off.
+channels = ["github_issue", "telegram"]
+
 [fetch]
 # A source's first import only takes items from the last N hours, so there is no backlog to pay for.
 first_import_hours = 48
@@ -60,6 +111,9 @@ half_life_hours = 24
 # Unconfigured providers are never called and never count as failures.
 triage = ["gemini", "groq", "openrouter", "mistral", "cloudflare", "claude", "deepseek"]
 write = ["gemini", "claude", "groq", "openrouter", "mistral", "cloudflare", "deepseek"]
+# Overviews for big stories and the weekly/monthly reviews use the write list unless set here:
+# digest = ["claude", "gemini"]
+# review = ["gemini", "claude"]
 triage_batch_size = 20
 write_batch_size = 4
 # Hard caps across all providers (retries included).

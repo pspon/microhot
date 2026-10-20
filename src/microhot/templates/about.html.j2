@@ -20,6 +20,26 @@
   <p class="note">{{ t('about_intro') }}</p>
 </section>
 
+<section aria-labelledby="ratings-title">
+  <h2 id="ratings-title">{{ t('about_ratings') }}</h2>
+  <p class="note">{{ t('ratings_note') }}</p>
+  {% if ratings.labels %}
+  {% if ratings.precision is not none %}<p>{{ t('ratings_precision', useful=ratings.picks_useful, rated=ratings.picks_rated, pct=(ratings.precision * 100)|round|int) }}</p>{% endif %}
+  {% if ratings.misses_wanted %}<p>{{ t('ratings_wanted', n=ratings.misses_wanted) }}</p>{% endif %}
+  <ul class="plain">
+    {% for tier, row in ratings.suggestions.items() if row.labels %}
+    {% if row.suggested is none %}
+    <li>{{ t('ratings_tier_more', tier=tier, n=row.labels, min=min_labels) }}</li>
+    {% else %}
+    <li>{{ t('ratings_tier_suggest', tier=tier, t=row.suggested, now=row.current, p=(row.precision * 100)|round|int, r=(row.recall * 100)|round|int) }}</li>
+    {% endif %}
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p>{{ t('ratings_none') }}</p>
+  {% endif %}
+</section>
+
 <section aria-labelledby="usage-title">
   <h2 id="usage-title">{{ t('about_usage') }}</h2>
   <p class="note">{{ t('caps_line', calls=caps.calls, usd=caps.usd) }}</p>
@@ -68,6 +88,17 @@
     {% endfor %}
     </tbody>
   </table></div>
+</section>
+
+<section aria-labelledby="feeds-title">
+  <h2 id="feeds-title">{{ t('feeds_title') }}</h2>
+  <ul class="plain">
+    <li><a href="{{ prefix }}/feed.xml">{{ t('feed_all') }}</a></li>
+    {% for beat, cfg in beats %}
+    <li><a href="{{ prefix }}/feed/{{ beat }}.xml">{{ t('feed_beat', beat=cfg['label_en'] if lang == 'en' else cfg['label_zh']) }}</a></li>
+    {% endfor %}
+    <li><a href="{{ prefix }}/feed/editions.xml">{{ t('feed_issues') }}</a></li>
+  </ul>
 </section>
 
 <section aria-labelledby="runs-title">

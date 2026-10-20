@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+<channel>
+<title>{{ site_name }} {{ site_name_zh }}: {{ t('feed_issues') }}</title>
+<link>{{ site_url }}{{ prefix }}/editions.html</link>
+<description>{{ tagline }}</description>
+<language>{{ 'en' if lang == 'en' else 'zh-tw' }}</language>
+{% for i in issues %}
+<item>
+<title>{{ i.title }}</title>
+<link>{{ site_url }}{{ prefix }}{{ i.url }}</link>
+<guid isPermaLink="false">{{ i.id }}</guid>
+<pubDate>{{ rfc822(i.at) }}</pubDate>
+<description>{{ i.titles|join(' / ') }}</description>
+</item>
+{% endfor %}
+</channel>
+</rss>

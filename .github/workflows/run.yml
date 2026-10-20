@@ -54,6 +54,7 @@ jobs:
           fi
 
       - name: Fetch, score, write and render
+        id: pipeline
         env:
           # Model providers. Any that are not set are skipped and never called.
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
@@ -91,7 +92,9 @@ jobs:
           path: public
           retention-days: 7
 
-      - name: Send the morning edition
+      - name: Read ratings, send the edition, reviews and alerts
+        # Still send when only publishing failed; never after a failed pipeline run.
+        if: ${{ !cancelled() && steps.pipeline.outcome == 'success' }}
         env:
           GITHUB_TOKEN: ${{ github.token }}
           SMTP_HOST: ${{ secrets.SMTP_HOST }}

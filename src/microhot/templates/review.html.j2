@@ -1,0 +1,24 @@
+{% extends "base.html.j2" %}
+{% import "_macros.html.j2" as m with context %}
+{% block title %}{{ title }} | {{ site_name }}{% endblock %}
+{% block main %}
+<section class="day" aria-labelledby="review-title">
+  <h1 id="review-title">{{ title }}</h1>
+  <p class="note">{{ t('review_stats' if review.stories|length < review.total else 'review_stats_all', shown=review.stories|length, total=review.total, editions=editions_label(review.editions)) }}</p>
+</section>
+{% if review.overview and review.overview[lang] %}
+<div class="lede digest">
+  <p>{{ review.overview[lang] }}</p>
+  <p class="note">{{ t('review_overview_by', by=review.overview.by) }}</p>
+</div>
+{% endif %}
+{% for g in groups %}
+<section class="beat" aria-labelledby="beat-{{ g.beat }}">
+  <h2 id="beat-{{ g.beat }}">{{ g.label }} <span class="count">{{ g.stories|length }}</span></h2>
+  {% for s in g.stories %}
+  {{ m.story(s, relative=false) }}
+  {% endfor %}
+</section>
+{% endfor %}
+<nav class="pager"><a href="{{ prefix }}{{ path[:-5] }}.md">{{ t('markdown_copy') }}</a></nav>
+{% endblock %}

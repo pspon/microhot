@@ -16,6 +16,7 @@ from .model import Event, Item
 from .prompts import load_prompt
 from .select import is_candidate, threshold_for_event
 from .textutil import to_iso, truncate
+from .topics import effective_score
 
 AXES = ("sig", "nov", "cred", "res", "act")
 # Weights per content type for (sig, nov, cred, res, act); each row sums to 10 → scores 0–100.
@@ -71,7 +72,7 @@ def _clamp(value) -> int:
     if isinstance(value, str):
         value = value.strip()
         value = int(float(value)) if value.replace(".", "", 1).isdigit() else 0
-    return max(0, min(10, int(round(float(value)))))
+    return max(0, min(10, round(float(value))))
 
 
 def make_validator(batch_ids: list[str]):
@@ -205,7 +206,7 @@ def _run_batches(
             if second:
                 first_score = event.score or 0
                 second_score = compute_score(entry["type"], entry["axes"])
-                event.score = int(round((first_score + second_score) / 2))
+                event.score = round((first_score + second_score) / 2)
                 event.opinions = 2
                 done.append(event)
                 continue
@@ -254,7 +255,7 @@ def triage_pending(
             e
             for e in scored
             if e.is_live and e.type != "off_topic" and e.opinions == 1 and e.score is not None
-            and abs(e.score - threshold_for_event(e, items, settings)) <= margin
+            and abs(effective_score(e) - threshold_for_event(e, items, settings)) <= margin
         ]
         if borderline:
             again = _run_batches(borderline, events, items, router, settings, now, rng, True, report)

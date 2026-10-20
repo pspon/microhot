@@ -63,7 +63,7 @@ def atom(items: list[tuple[str, str, datetime, str]]) -> str:
 
 
 def default_feeds(now: datetime = NOW) -> dict[str, str]:
-    h = lambda n: now - timedelta(hours=n)  # noqa: E731
+    h = lambda n: now - timedelta(hours=n)
     return {
         "https://lab.test/feed.xml": rss(
             [
@@ -131,8 +131,8 @@ class FakeLLM:
                 raise nxt
             return LLMResult(text=nxt, input_tokens=100, output_tokens=10)
         if schema_name == "triage":
-            ids = re.findall(r"^\[(\d+)\] published", user, re.M)
-            titles = re.findall(r"^Title: (.*)$", user, re.M)
+            ids = re.findall(r"^\[(\d+)\] published", user, re.MULTILINE)
+            titles = re.findall(r"^Title: (.*)$", user, re.MULTILINE)
             out = []
             for item_id, title in zip(ids, titles):
                 low = title.lower()
@@ -141,7 +141,16 @@ class FakeLLM:
                 out.append({"id": item_id, "type": kind, "beat": "gov" if kind == "policy_action" else "ai",
                             "sig": level, "nov": level, "cred": level, "res": level, "act": level, "dup": ""})
             return LLMResult(text=json.dumps({"items": out}), input_tokens=1200, output_tokens=200)
-        ids = re.findall(r"^\[(\d+)\] Source", user, re.M)
+        if schema_name == "digest":
+            digest = {"title_en": "Nova-2 arrives with a 1M-token window",
+                      "digest_en": "Acme shipped Nova-2. Two outlets confirmed it.\n\nDevelopers can use it today.",
+                      "title_zh": "Nova-2 登场", "digest_zh": "Acme 发布 Nova-2，多家媒体证实。\n\n开发者今天即可使用。"}
+            return LLMResult(text=json.dumps(digest), input_tokens=1500, output_tokens=300)
+        if schema_name == "review":
+            review = {"overview_en": "A week of model releases and new public-sector rules.",
+                      "overview_zh": "这一周有新模型发布，也有新的公部门规则。"}
+            return LLMResult(text=json.dumps(review), input_tokens=800, output_tokens=150)
+        ids = re.findall(r"^\[(\d+)\] Source", user, re.MULTILINE)
         stories = [
             {"id": i, "title_en": f"Headline {i}", "summary_en": "Something specific happened. It matters to you.",
              "title_zh": "人工智能软件发布", "summary_zh": "这个模型的数据很好，用户可以在视频里看到。"}
@@ -155,6 +164,7 @@ def project(tmp_path, monkeypatch):
     root = tmp_path / "proj"
     (root / "config").mkdir(parents=True)
     shutil.copy(REPO / "config" / "site.toml", root / "config" / "site.toml")
+    shutil.copy(REPO / "config" / "topics.toml", root / "config" / "topics.toml")
     (root / "config" / "sources.toml").write_text(SOURCES, encoding="utf-8")
     shutil.copytree(REPO / "prompts", root / "prompts")
     monkeypatch.setenv("MICROHOT_DATA", str(root / "data"))

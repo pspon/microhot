@@ -1,0 +1,185 @@
+# Topic pages. A story belongs to a topic when its headline, summary or text matches any pattern
+# (regular expressions, case-insensitive). Rules only: no model calls.
+#   group: "org" (companies and labs), "gov" (governance), "tech" (technology areas)
+# Topic ids can also be used for boost rules in config/site.toml [adjust].
+
+# ---- Companies and labs ------------------------------------------------------------------
+
+[[topic]]
+id = "openai"
+name_en = "OpenAI"
+name_zh = "OpenAI"
+group = "org"
+patterns = ['OpenAI', 'ChatGPT', '\bGPT-?\d', '\bSora\b', '\bCodex\b']
+
+[[topic]]
+id = "anthropic"
+name_en = "Anthropic"
+name_zh = "Anthropic"
+group = "org"
+patterns = ['Anthropic', '\bClaude\b']
+
+[[topic]]
+id = "google"
+name_en = "Google and DeepMind"
+name_zh = "Google 與 DeepMind"
+group = "org"
+patterns = ['\bGoogle\b', 'DeepMind', '\bGemini\b', '\bGemma\b', 'AI Overviews?']
+
+[[topic]]
+id = "meta"
+name_en = "Meta"
+name_zh = "Meta"
+group = "org"
+patterns = ['Meta (AI|Platforms|Superintelligence)', '\bLlama\b', 'Zuckerberg']
+
+[[topic]]
+id = "microsoft"
+name_en = "Microsoft"
+name_zh = "Microsoft"
+group = "org"
+patterns = ['Microsoft', 'Azure (AI|OpenAI)']
+
+[[topic]]
+id = "nvidia"
+name_en = "NVIDIA"
+name_zh = "NVIDIA"
+group = "org"
+patterns = ['Nvidia', '\bCUDA\b', 'Blackwell']
+
+[[topic]]
+id = "chinese-labs"
+name_en = "Chinese AI labs"
+name_zh = "中國 AI 實驗室"
+group = "org"
+patterns = ['DeepSeek', '\bQwen', 'Alibaba', '\bKimi\b', 'Moonshot AI', 'Zhipu', '\bGLM-?\d', 'MiniMax', 'Baidu', 'ByteDance', 'Doubao']
+
+[[topic]]
+id = "mistral"
+name_en = "Mistral"
+name_zh = "Mistral"
+group = "org"
+patterns = ['Mistral']
+
+# ---- Governance ---------------------------------------------------------------------------
+
+[[topic]]
+id = "canada"
+name_en = "Canada"
+name_zh = "加拿大"
+group = "gov"
+patterns = ['Canada', 'Canadian', 'Ottawa', 'Treasury Board', 'Innovation, Science and Economic Development', '\bISED\b', 'AI Safety Institute of Canada', 'Canadian AI Safety Institute', '加拿大']
+
+[[topic]]
+id = "ontario"
+name_en = "Ontario"
+name_zh = "安大略省"
+group = "gov"
+patterns = ['Ontario', 'Queen.s Park', '安大略']
+
+[[topic]]
+id = "eu-ai-act"
+name_en = "EU and the AI Act"
+name_zh = "歐盟與 AI 法案"
+group = "gov"
+patterns = ['\bAI Act\b', 'European (Commission|Parliament|Union)', '\bEU\b', 'AI Office', 'GPAI', '歐盟']
+
+[[topic]]
+id = "us-policy"
+name_en = "US policy"
+name_zh = "美國政策"
+group = "gov"
+patterns = ['White House', '\bCongress(ional)?\b', 'U\.?S\.? Senate', '\bFTC\b', 'executive order', 'state AI laws?', 'California (bill|law|legislat)', '\bNIST\b', 'federal preemption', 'Trump administration']
+
+[[topic]]
+id = "uk"
+name_en = "United Kingdom"
+name_zh = "英國"
+group = "gov"
+patterns = ['\bUK\b', 'United Kingdom', 'Britain', 'British government', 'AI Security Institute', '\bOfcom\b']
+
+[[topic]]
+id = "public-sector"
+name_en = "AI in the public sector"
+name_zh = "公部門 AI"
+group = "gov"
+patterns = ['public sector', 'public service', 'government (use|agenc|department|services)', 'civil serv', 'procurement', 'automated decision', 'algorithmic impact', 'digital government']
+
+[[topic]]
+id = "privacy"
+name_en = "Privacy and data protection"
+name_zh = "隱私與資料保護"
+group = "gov"
+patterns = ['privacy', 'data protection', 'personal (data|information)', '\bGDPR\b', '\bPIPEDA\b', 'biometric', 'facial recognition', 'surveillance']
+
+[[topic]]
+id = "safety"
+name_en = "AI safety and evaluations"
+name_zh = "AI 安全與評估"
+group = "gov"
+patterns = ['AI safety', '(AI|model) alignment', 'alignment (research|team)', 'misalign', 'red[- ]team', 'frontier (model|AI) (risk|safety)', 'catastrophic risk', 'jailbreak', 'system card', 'interpretability', 'safety evaluat']
+
+[[topic]]
+id = "copyright"
+name_en = "Copyright and lawsuits"
+name_zh = "著作權與訴訟"
+group = "gov"
+patterns = ['copyright', 'lawsuit', '\bsued\b', 'fair use', 'licensing deal', 'class action']
+
+[[topic]]
+id = "work"
+name_en = "Work and jobs"
+name_zh = "工作與就業"
+group = "gov"
+patterns = ['\bjob (loss|losses|cuts|market|seekers?|security|displacement)', '\bjobs (report|data|lost|cut|at risk)', '\b(lose|lost|losing|cuts?|cutting|replac\w*|eliminat\w*) (\S+ ){0,3}jobs\b', 'workforce', 'employment', 'layoffs?', 'labou?r market', '(trade|labou?r) unions?', '\bunioni[sz]', 'white-collar']
+
+# ---- Technology areas ---------------------------------------------------------------------
+
+[[topic]]
+id = "agents"
+name_en = "Agents"
+name_zh = "AI 代理"
+group = "tech"
+patterns = ['\bagents?\b', '\bagentic\b', 'computer use', '\bMCP\b', 'Model Context Protocol', 'tool use']
+
+[[topic]]
+id = "coding"
+name_en = "Coding tools"
+name_zh = "程式開發工具"
+group = "tech"
+patterns = ['\bcoding\b', 'code (assistant|generation|review)', 'Claude Code', '\bCodex\b', '\bCursor\b', 'GitHub Copilot', 'SWE-bench', 'developer tools?']
+
+[[topic]]
+id = "open-weights"
+name_en = "Open-weight models"
+name_zh = "開放權重模型"
+group = "tech"
+patterns = ['open[- ]weights?', 'open[- ]source (model|LLM|AI)', 'Apache 2\.0', '\bLlama\b', '\bQwen', 'DeepSeek', '\bGemma\b']
+
+[[topic]]
+id = "reasoning"
+name_en = "Reasoning"
+name_zh = "推理"
+group = "tech"
+patterns = ['reasoning', 'chain[- ]of[- ]thought', 'test[- ]time compute', 'thinking model']
+
+[[topic]]
+id = "multimodal"
+name_en = "Image, video and voice"
+name_zh = "影像、影片與語音"
+group = "tech"
+patterns = ['multimodal', 'image (generation|model|generator)', 'video (generation|model|generator)', 'text-to-(image|video|speech)', 'speech-to-text', 'speech (recognition|model|synthesis)', 'voice (mode|model|assistant|agent|clon\w*)', '\bSora\b', '\bVeo\b', 'Imagen', 'Midjourney']
+
+[[topic]]
+id = "compute"
+name_en = "Chips and compute"
+name_zh = "晶片與算力"
+group = "tech"
+patterns = ['\bGPUs?\b', '\bchips?\b', '\bTPUs?\b', 'data ?cent(er|re)s?', 'semiconductor', '\bTSMC\b', '\bAMD\b', 'Nvidia']
+
+[[topic]]
+id = "benchmarks"
+name_en = "Benchmarks and evals"
+name_zh = "評測基準"
+group = "tech"
+patterns = ['benchmark', 'leaderboard', 'SWE-bench', 'ARC-AGI', '\bMMLU\b', '\bGPQA\b', "Humanity.s Last Exam", '\bevals?\b']

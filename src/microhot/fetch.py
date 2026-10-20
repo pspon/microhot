@@ -15,7 +15,15 @@ import httpx
 
 from .config import Settings, Source
 from .model import Item
-from .textutil import html_to_text, hours_between, item_id_for, title_fingerprint, to_iso, truncate
+from .textutil import (
+    hours_between,
+    html_to_text,
+    item_id_for,
+    title_fingerprint,
+    to_iso,
+    truncate,
+)
+from .topics import muted
 
 SNIPPET_CHARS = 1600
 
@@ -29,6 +37,7 @@ class FetchStat:
     new: int = 0
     old: int = 0
     filtered: int = 0
+    muted: int = 0
     duplicate: int = 0
     error: str | None = None
     ms: int = 0
@@ -172,6 +181,9 @@ def fetch_source(
             undated_budget -= 1
         if not source.matches(f"{title} {text}"):
             stat.filtered += 1
+            continue
+        if muted(settings, f"{title} {text}"):
+            stat.muted += 1
             continue
         item_id = item_id_for(link)
         fp = title_fingerprint(title)

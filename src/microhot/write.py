@@ -132,6 +132,7 @@ def write_pending(events: dict[str, Event], items: dict[str, Item], router: Rout
                 "summary_zh": summary_zh,
                 "by": f"{result.provider}/{result.model}",
                 "at": to_iso(now),
+                "item_ids": list(event.item_ids),  # later reports become follow-ups
             }
             report["written"] += 1
     return report

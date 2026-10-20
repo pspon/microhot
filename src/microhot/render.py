@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import hashlib
+import json
+import math
 import shutil
 from datetime import datetime, timedelta
 from email.utils import format_datetime
@@ -12,27 +14,39 @@ from jinja2 import Environment, PackageLoader, StrictUndefined, select_autoescap
 
 from . import i18n
 from .config import LANGS, Settings
+from .feedback import evaluate
 from .llm.usage import UsageLog
+from .markdown import edition_markdown, edition_title, review_markdown, review_title
 from .model import Event, Item
 from .select import near_misses
 from .store import Store, read_json
 from .textutil import parse_iso
+from .topics import GROUPS, Topic, effective_score, load_topics, topics_for
 from .views import story_view, temp_class, temperature
 
 TODAY_HOURS = 24
 RADAR_LIMIT = 10
 FEED_LIMIT = 50
+TOPIC_OTHER_DAYS = 7
+SEARCH_LIMIT = 3000
+AXES = ["sig", "nov", "cred", "res", "act"]
+STATIC_FILES = ("style.css", "icon.svg", "search.js", "visit.js")
 
 
 def _env() -> Environment:
-    env = Environment(
+    return Environment(
         loader=PackageLoader("microhot", "templates"),
         autoescape=select_autoescape(["html", "xml", "j2"]),
         undefined=StrictUndefined,
         trim_blocks=True,
         lstrip_blocks=True,
     )
-    return env
+
+
+def _minutes(stats: dict, lang: str) -> int:
+    if lang == "zh-TW" and stats.get("chars_zh"):
+        return max(1, math.ceil(stats["chars_zh"] / 400))
+    return max(1, math.ceil(stats.get("words_en", 0) / 220))
 
 
 class SiteBuilder:
@@ -44,6 +58,7 @@ class SiteBuilder:
         items: dict[str, Item],
         now: datetime,
         run_summary: dict | None = None,
+        topics: list[Topic] | None = None,
     ) -> None:
         self.settings = settings
         self.store = store
@@ -52,7 +67,8 @@ class SiteBuilder:
         self.now = now
         self.tz = settings.tz
         self.run_summary = run_summary or read_json(store.dir / "runs" / "latest.json", {}) or {}
-        self.css_version = ""
+        self.topics = load_topics(settings) if topics is None else topics
+        self.static_version = ""
         self.event_page_ids: set[str] = set()
         self.env = _env()
         self.out = settings.public_dir
@@ -65,13 +81,15 @@ class SiteBuilder:
         path.write_text(content, encoding="utf-8")
         self.written += 1
 
+    def _render(self, template: str, rel: str, lang: str, page: str, path: str, **ctx) -> None:
+        self._write(rel, self.env.get_template(template).render(**self._common(lang, page, path), **ctx))
+
     def _common(self, lang: str, page: str, path: str) -> dict:
         other = "zh-TW" if lang == "en" else "en"
-        prefix = i18n.prefix(lang)
         return {
             "lang": lang,
             "page": page,
-            "prefix": prefix,
+            "prefix": i18n.prefix(lang),
             "path": path,
             "alt_url": f"{i18n.prefix(other)}{path}",
             "alt_lang_attr": i18n.t(other, "html_lang"),
@@ -79,13 +97,17 @@ class SiteBuilder:
             "site_name_zh": self.settings.site["name_zh"],
             "tagline": self.settings.site["tagline_en" if lang == "en" else "tagline_zh"],
             "updated": i18n.fmt_datetime(self.now, lang, self.tz),
-            "css_version": self.css_version,
+            "static_version": self.static_version,
             "t": lambda key, **kw: i18n.t(lang, key, **kw),
             "ago": lambda iso: i18n.ago(parse_iso(iso) or self.now, self.now, lang),
             "when": lambda iso: i18n.fmt_datetime(parse_iso(iso) or self.now, lang, self.tz),
+            "day": lambda iso: i18n.fmt_date(parse_iso(iso) or self.now, lang, self.tz),
             "sources_label": lambda n: i18n.sources_label(lang, n),
             "source_line": lambda s: self._source_line(s, lang),
             "event_pages": self.event_page_ids,
+            "fmt_change": lambda c: ("↑" if c > 0 else "↓" if c < 0 else "±") + f"{abs(c):.1f}°",
+            "edition_label": lambda d: i18n.t(lang, "edition_title", date=i18n.fmt_date(parse_iso(f"{d}T12:00:00Z") or self.now, lang, self.tz)),
+            "editions_label": lambda n: i18n.t(lang, "edition_1") if n == 1 else i18n.t(lang, "editions_n", n=n),
         }
 
     @staticmethod
@@ -112,6 +134,9 @@ class SiteBuilder:
                 groups.append({"beat": beat, "label": self._beat_label(beat, lang), "stories": rows})
         return groups
 
+    def view(self, event: Event) -> dict:
+        return story_view(event, self.items, self.settings, self.now, self.topics)
+
     # ---- data ----------------------------------------------------------------------------
     def _live(self) -> list[Event]:
         return [e for e in self.events.values() if e.is_live and e.rep in self.items]
@@ -119,8 +144,8 @@ class SiteBuilder:
     def _today_stories(self) -> list[dict]:
         since = self.now - timedelta(hours=TODAY_HOURS)
         picked = [e for e in self._live() if e.selected_at and (parse_iso(e.selected_at) or self.now) >= since]
-        picked.sort(key=lambda e: (-e.heat, -(e.score or 0), e.id))
-        return [story_view(e, self.items, self.settings) for e in picked]
+        picked.sort(key=lambda e: (-e.heat, -effective_score(e), e.id))
+        return [self.view(e) for e in picked]
 
     def _radar(self) -> list[dict]:
         since = self.now - timedelta(hours=TODAY_HOURS)
@@ -130,12 +155,57 @@ class SiteBuilder:
             if not e.selected_at and e.type != "off_topic" and (parse_iso(e.last_seen) or self.now) >= since
         ]
         rows.sort(key=lambda e: (-e.heat, -(e.score or -1), e.id))
-        return [story_view(e, self.items, self.settings) for e in rows[:RADAR_LIMIT]]
+        return [self.view(e) for e in rows[:RADAR_LIMIT]]
 
-    def _feed_stories(self) -> list[dict]:
+    def _picked_views(self) -> list[dict]:
         picked = [e for e in self._live() if e.selected_at]
         picked.sort(key=lambda e: e.selected_at or "", reverse=True)
-        return [story_view(e, self.items, self.settings) for e in picked[:FEED_LIMIT]]
+        return [self.view(e) for e in picked]
+
+    def _topic_pages(self, picked_views: list[dict]) -> list[dict]:
+        other_since = self.now - timedelta(days=TOPIC_OTHER_DAYS)
+        others = [
+            e
+            for e in self._live()
+            if not e.selected_at and e.type != "off_topic" and (parse_iso(e.last_seen) or self.now) >= other_since
+        ]
+        other_matches = {e.id: [t.id for t in topics_for(e, self.items, self.topics)] for e in others}
+        pages = []
+        for topic in self.topics:
+            picked = [v for v in picked_views if any(tp["id"] == topic.id for tp in v["topics"])]
+            rest = [self.view(e) for e in others if topic.id in other_matches[e.id]]
+            rest.sort(key=lambda v: (-v["heat"], v["id"]))
+            pages.append({"topic": topic, "picked": picked, "other": rest[:15], "count": len(picked)})
+        return pages
+
+    def _search_index(self, editions: list[dict], picked_views: list[dict]) -> list[dict]:
+        rows: dict[str, dict] = {}
+
+        def add(story: dict, date: str) -> None:
+            rows[story["id"]] = {
+                "i": story["id"],
+                "d": date,
+                "u": f"/e/{story['id']}.html" if story["id"] in self.event_page_ids else story["url"],
+                "s": story["source"],
+                "t": [story["title"]["en"], story["title"]["zh-TW"]],
+                "m": [story["summary"]["en"], story["summary"]["zh-TW"]],
+            }
+
+        for edition in reversed(editions):  # oldest first, so newer snapshots win
+            for story in edition.get("stories", []) + edition.get("followups", []):
+                add(story, edition["date"])
+        for view in picked_views:
+            if view["id"] not in rows:
+                selected = parse_iso(view["selected_at"]) or self.now
+                add(view, selected.astimezone(self.tz).date().isoformat())
+        ordered = sorted(rows.values(), key=lambda r: (r["d"], r["i"]), reverse=True)
+        return ordered[:SEARCH_LIMIT]
+
+    def _ratings(self) -> dict:
+        try:
+            return evaluate(self.settings, self.store)
+        except (KeyError, ValueError, TypeError):
+            return {"labels": 0}
 
     # ---- build ---------------------------------------------------------------------------
     def build(self) -> dict:
@@ -143,10 +213,11 @@ class SiteBuilder:
             shutil.rmtree(self.out)
         self.out.mkdir(parents=True)
         static_src = resources.files("microhot") / "static"
-        css = (static_src / "style.css").read_text(encoding="utf-8")
-        self.css_version = hashlib.sha1(css.encode()).hexdigest()[:8]
-        for name in ("style.css", "icon.svg"):
-            self._write(f"static/{name}", (static_src / name).read_text(encoding="utf-8"))
+        static = {name: (static_src / name).read_text(encoding="utf-8") for name in STATIC_FILES}
+        # One version for all static files: they are cached as immutable, so any change needs a new URL.
+        self.static_version = hashlib.sha1("".join(static.values()).encode()).hexdigest()[:8]
+        for name, text in static.items():
+            self._write(f"static/{name}", text)
         self._write("robots.txt", "User-agent: *\nDisallow: /\n")
         self._write(
             "_headers",
@@ -158,11 +229,13 @@ class SiteBuilder:
         self.event_page_ids = {e.id for e in selected}
         today = self._today_stories()
         radar = self._radar()
-        feed = self._feed_stories()
-        editions = [self.store.load_edition(d) for d in self.store.list_editions()]
-        editions = [ed for ed in editions if ed]
+        picked_views = self._picked_views()
+        editions = [ed for ed in (self.store.load_edition(d) for d in self.store.list_editions()) if ed]
+        reviews = self.store.list_reviews()
+        topic_pages = self._topic_pages(picked_views)
         llm_ready = bool(self.run_summary.get("llm", {}).get("active", {}).get("triage"))
         high = max((s["temp"] for s in today), default=None)
+        self._write("search.json", json.dumps(self._search_index(editions, picked_views), ensure_ascii=False, separators=(",", ":")))
 
         usage = UsageLog(self.store.usage_dir, self.tz)
         about_ctx = {
@@ -170,88 +243,166 @@ class SiteBuilder:
             "providers": self._providers_table(),
             "usage_today": UsageLog.summarize(usage.rows_for_day(self.now)),
             "usage_month": UsageLog.summarize(usage.rows_for_month(self.now)),
-            "caps": {
-                "calls": self.settings.llm["max_calls_per_day"],
-                "usd": self.settings.llm["usd_cap_per_day"],
-            },
+            "caps": {"calls": self.settings.llm["max_calls_per_day"], "usd": self.settings.llm["usd_cap_per_day"]},
             "runs": self.store.recent_runs(10),
             "misses": near_misses(self.events, self.items, self.settings, self.now),
+            "ratings": self._ratings(),
+            "min_labels": int(self.settings.raw["feedback"].get("min_labels", 10)),
+            "beats": [(b, self.settings.beats[b]) for b in self.settings.beat_order],
         }
 
         for lang in LANGS:
             p = i18n.prefix(lang)
-            ctx = self._common(lang, "today", "/")
-            self._write(
+            self._render(
+                "today.html.j2",
                 f"{p}/index.html",
-                self.env.get_template("today.html.j2").render(
-                    **ctx,
-                    groups=self._group(today, lang),
-                    any_stories=bool(today),
-                    radar=radar,
-                    llm_ready=llm_ready,
-                    high=high,
-                    high_class=temp_class(high) if high else "cool",
-                    day_label=i18n.fmt_date(self.now, lang, self.tz),
-                    latest_edition=editions[0]["date"] if editions else None,
-                    latest_edition_label=(
-                        i18n.fmt_date(parse_iso(editions[0]["built_at"]) or self.now, lang, self.tz) if editions else ""
-                    ),
-                ),
+                lang,
+                "today",
+                "/",
+                groups=self._group(today, lang),
+                any_stories=bool(today),
+                radar=radar,
+                llm_ready=llm_ready,
+                high=high,
+                high_class=temp_class(high) if high else "cool",
+                day_label=i18n.fmt_date(self.now, lang, self.tz),
+                latest_edition=editions[0]["date"] if editions else None,
+                latest_edition_label=i18n.fmt_date(parse_iso(editions[0]["built_at"]) or self.now, lang, self.tz) if editions else "",
             )
             for event in selected:
-                story = story_view(event, self.items, self.settings)
+                story = self.view(event)
                 path = f"/e/{event.id}.html"
-                self._write(
+                self._render(
+                    "event.html.j2",
                     f"{p}{path}",
-                    self.env.get_template("event.html.j2").render(
-                        **self._common(lang, "event", path),
-                        s=story,
-                        beat_label=self._beat_label(story["beat"], lang),
-                        threshold=self.settings.threshold_for(story["tier"]),
-                        axes_order=["sig", "nov", "cred", "res", "act"],
-                    ),
+                    lang,
+                    "event",
+                    path,
+                    s=story,
+                    beat_label=self._beat_label(story["beat"], lang),
+                    threshold=self.settings.threshold_for(story["tier"]),
+                    axes_order=AXES,
                 )
-            for ed in editions:
+            for i, ed in enumerate(editions):
                 path = f"/d/{ed['date']}.html"
-                built = parse_iso(ed["built_at"]) or self.now
-                self._write(
+                by_id = {s["id"]: s for s in ed["stories"]}
+                lead = by_id.get(ed.get("lead"))
+                rest = [s for s in ed["stories"] if not lead or s["id"] != lead["id"]]
+                highlights = [by_id[h] for h in ed.get("highlights", []) if h in by_id]
+                stats = ed.get("stats") or {}
+                self._render(
+                    "edition.html.j2",
                     f"{p}{path}",
-                    self.env.get_template("edition.html.j2").render(
-                        **self._common(lang, "edition", path),
-                        edition=ed,
-                        title=i18n.t(lang, "edition_title", date=i18n.fmt_date(built, lang, self.tz)),
-                        groups=self._group(ed["stories"], lang),
-                    ),
+                    lang,
+                    "edition",
+                    path,
+                    edition=ed,
+                    title=edition_title(self.settings, ed, lang),
+                    lead=lead,
+                    highlights=highlights if len(rest) > len(highlights) else [],  # a skim list only helps long editions
+                    groups=self._group(rest, lang),
+                    followups=ed.get("followups", []),
+                    stats_line=i18n.t(
+                        lang,
+                        "stats_line",
+                        stories=i18n.t(lang, "story_1") if stats.get("stories") == 1 else i18n.t(lang, "stories_n", n=stats.get("stories", 0)),
+                        sources=i18n.sources_label(lang, stats.get("sources", 0)),
+                        official=stats.get("official", 0),
+                        minutes=_minutes(stats, lang),
+                    )
+                    if stats
+                    else "",
+                    newer=editions[i - 1]["date"] if i > 0 else None,
+                    older=editions[i + 1]["date"] if i + 1 < len(editions) else None,
                 )
-            self._write(
+                self._write(f"{p}/d/{ed['date']}.md", edition_markdown(ed, self.settings, lang))
+            for review in reviews:
+                kind = "w" if review["kind"] == "weekly" else "m"
+                path = f"/{kind}/{review['id']}.html"
+                self._render(
+                    "review.html.j2",
+                    f"{p}{path}",
+                    lang,
+                    "edition",
+                    path,
+                    review=review,
+                    title=review_title(self.settings, review, lang),
+                    groups=self._group(review["stories"], lang),
+                )
+                self._write(f"{p}/{kind}/{review['id']}.md", review_markdown(review, self.settings, lang))
+            self._render(
+                "editions.html.j2",
                 f"{p}/editions.html",
-                self.env.get_template("editions.html.j2").render(
-                    **self._common(lang, "editions", "/editions.html"),
-                    editions=[
-                        {
-                            "date": ed["date"],
-                            "label": i18n.fmt_date(parse_iso(ed["built_at"]) or self.now, lang, self.tz),
-                            "count": len(ed["stories"]),
-                        }
-                        for ed in editions
-                    ],
-                ),
+                lang,
+                "editions",
+                "/editions.html",
+                editions=[
+                    {
+                        "date": ed["date"],
+                        "label": i18n.fmt_date(parse_iso(ed["built_at"]) or self.now, lang, self.tz),
+                        "count": len(ed["stories"]),
+                    }
+                    for ed in editions
+                ],
+                reviews=[
+                    {"url": f"/{'w' if r['kind'] == 'weekly' else 'm'}/{r['id']}.html", "label": review_title(self.settings, r, lang), "count": len(r["stories"])}
+                    for r in reviews
+                ],
             )
-            self._write(
-                f"{p}/about.html",
-                self.env.get_template("about.html.j2").render(**self._common(lang, "about", "/about.html"), **about_ctx),
+            self._render(
+                "topics.html.j2",
+                f"{p}/topics.html",
+                lang,
+                "topics",
+                "/topics.html",
+                groups=[
+                    {"label": i18n.t(lang, f"group_{g}"), "pages": [tp for tp in topic_pages if tp["topic"].group == g]}
+                    for g in GROUPS
+                    if any(tp["topic"].group == g for tp in topic_pages)
+                ],
             )
-            self._write(
-                f"{p}/feed.xml",
-                self.env.get_template("feed.xml.j2").render(
-                    **self._common(lang, "feed", "/feed.xml"),
-                    stories=feed,
-                    site_url=self.settings.site_url,
-                    rfc822=lambda iso: format_datetime(parse_iso(iso) or self.now),
-                ),
-            )
-            self._write(f"{p}/404.html", self.env.get_template("404.html.j2").render(**self._common(lang, "404", "/")))
-        return {"pages": self.written, "today": len(today), "radar": len(radar), "events": len(selected), "editions": len(editions)}
+            for tp in topic_pages:
+                path = f"/t/{tp['topic'].id}.html"
+                self._render("topic.html.j2", f"{p}{path}", lang, "topics", path, tp=tp, name=tp["topic"].name(lang))
+            self._render("search.html.j2", f"{p}/search.html", lang, "search", "/search.html")
+            self._render("about.html.j2", f"{p}/about.html", lang, "about", "/about.html", **about_ctx)
+            rfc822 = lambda iso: format_datetime(parse_iso(iso) or self.now)
+            site_url = self.settings.site_url
+            self._render("feed.xml.j2", f"{p}/feed.xml", lang, "feed", "/feed.xml", stories=picked_views[:FEED_LIMIT], site_url=site_url, rfc822=rfc822, feed_title="")
+            for beat in self.settings.beat_order:
+                stories = [v for v in picked_views if v["beat"] == beat][:FEED_LIMIT]
+                self._render(
+                    "feed.xml.j2",
+                    f"{p}/feed/{beat}.xml",
+                    lang,
+                    "feed",
+                    f"/feed/{beat}.xml",
+                    stories=stories,
+                    site_url=site_url,
+                    rfc822=rfc822,
+                    feed_title=self._beat_label(beat, lang),
+                )
+            issues = [
+                {"title": edition_title(self.settings, ed, lang), "url": f"/d/{ed['date']}.html", "at": ed["built_at"], "id": ed["date"],
+                 "titles": [s["title"][lang] for s in ed["stories"]]}
+                for ed in editions[:30]
+            ] + [
+                {"title": review_title(self.settings, r, lang), "url": f"/{'w' if r['kind'] == 'weekly' else 'm'}/{r['id']}.html", "at": r["built_at"],
+                 "id": r["id"], "titles": [s["title"][lang] for s in r["stories"]]}
+                for r in reviews[:24]
+            ]
+            issues.sort(key=lambda x: x["at"], reverse=True)
+            self._render("feed_issues.xml.j2", f"{p}/feed/editions.xml", lang, "feed", "/feed/editions.xml", issues=issues, site_url=site_url, rfc822=rfc822)
+            self._render("404.html.j2", f"{p}/404.html", lang, "404", "/")
+        return {
+            "pages": self.written,
+            "today": len(today),
+            "radar": len(radar),
+            "events": len(selected),
+            "editions": len(editions),
+            "reviews": len(reviews),
+            "topics": len(topic_pages),
+        }
 
     # ---- about page tables -----------------------------------------------------------------
     def _sources_table(self) -> list[dict]:
@@ -283,7 +434,7 @@ class SiteBuilder:
         disabled = llm.get("disabled", {})
         rows = []
         for name, provider in self.settings.providers.items():
-            steps = [step for step in ("triage", "write") if name in self.settings.llm.get(step, [])]
+            steps = [step for step in ("triage", "write", "digest", "review") if name in self.settings.llm.get(step, [])]
             if name in disabled:
                 status = f"turned off this run: {disabled[name]}"
             elif name in unconfigured:

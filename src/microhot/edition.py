@@ -1,4 +1,8 @@
-"""The daily edition: compiled by rule from the stories picked since the last edition (0 tokens)."""
+"""The morning edition, compiled by rule (0 tokens).
+
+It carries the stories picked since the previous edition, plus follow-ups: stories already covered
+that gained real news since then (a new official source, or several new sources), as AIHOT does.
+"""
 
 from __future__ import annotations
 
@@ -6,8 +10,12 @@ from datetime import datetime, timedelta
 
 from .config import Settings
 from .model import Event, Item
-from .textutil import parse_iso, to_iso
+from .select import near_misses
+from .textutil import has_cjk, parse_iso, to_iso
+from .topics import Topic, effective_score
 from .views import story_view
+
+MAX_FOLLOWUPS = 5
 
 
 def edition_due(settings: Settings, state: dict, now: datetime) -> str | None:
@@ -21,6 +29,57 @@ def edition_due(settings: Settings, state: dict, now: datetime) -> str | None:
     return date
 
 
+def followup_links(event: Event, items: dict[str, Item], settings: Settings, since: datetime) -> list[dict]:
+    """Reports that arrived after `since` from sources new to the story, if they amount to news."""
+    seen_before: set[str] = set()
+    fresh: dict[str, list[Item]] = {}
+    for item_id in event.item_ids:
+        item = items.get(item_id)
+        if not item:
+            continue
+        fetched = parse_iso(item.fetched) or since
+        if fetched > since:
+            fresh.setdefault(item.source_id, []).append(item)
+        else:
+            seen_before.add(item.source_id)
+    new_sources = {sid: its for sid, its in fresh.items() if sid not in seen_before}
+    if not new_sources:
+        return []
+    official = any((src := settings.source(sid)) is not None and src.tier == "T1" for sid in new_sources)
+    needed = int(settings.raw["editions"].get("followup_min_new_sources", 2))
+    if not official and len(new_sources) < needed:
+        return []
+    links = []
+    for sid, its in new_sources.items():
+        src = settings.source(sid)
+        for item in its:
+            links.append(
+                {
+                    "source": src.name if src else sid,
+                    "official": bool(src and src.tier == "T1"),
+                    "title": item.title,
+                    "url": item.url,
+                    "when": to_iso(item.when()),
+                }
+            )
+    links.sort(key=lambda link: link["when"])
+    return links
+
+
+def _stats(stories: list[dict], followups: list[dict]) -> dict:
+    sources = {link["source"] for s in stories + followups for link in s["links"]}
+    words_en = sum(len((s["title"]["en"] + " " + s["summary"]["en"]).split()) for s in stories + followups)
+    chars_zh = sum(len(s["title"]["zh-TW"] + s["summary"]["zh-TW"]) for s in stories + followups if has_cjk(s["title"]["zh-TW"]))
+    return {
+        "stories": len(stories),
+        "followups": len(followups),
+        "sources": len(sources),
+        "official": sum(1 for s in stories if s["official"]),
+        "words_en": words_en,
+        "chars_zh": chars_zh,
+    }
+
+
 def build_edition(
     date: str,
     events: dict[str, Event],
@@ -28,21 +87,54 @@ def build_edition(
     settings: Settings,
     state: dict,
     now: datetime,
+    topics: list[Topic] | None = None,
 ) -> dict:
     last_built = parse_iso(state.get("editions", {}).get("last_built_at"))
     since = now - timedelta(hours=24)
     if last_built:
         since = max(last_built, now - timedelta(hours=36))
     order = {beat: i for i, beat in enumerate(settings.beat_order)}
-    picked = [
-        e for e in events.values() if e.is_live and e.selected_at and (parse_iso(e.selected_at) or now) > since
-    ]
-    picked.sort(key=lambda e: (order.get(e.beat, 99), -e.heat, -(e.score or 0), e.id))
+
+    live = [e for e in events.values() if e.is_live]
+    picked = [e for e in live if e.selected_at and (parse_iso(e.selected_at) or now) > since]
+    picked.sort(key=lambda e: (order.get(e.beat, 99), -e.heat, -effective_score(e), e.id))
+    picked_ids = {e.id for e in picked}
+
+    followups: list[tuple[Event, list[dict]]] = []
+    for event in live:
+        if event.id in picked_ids or not event.selected_at:
+            continue
+        covered_before = bool(event.editions) or (parse_iso(event.selected_at) or now) <= since
+        if not covered_before:
+            continue
+        links = followup_links(event, items, settings, since)
+        if links:
+            followups.append((event, links))
+    followups.sort(key=lambda pair: (-pair[0].heat, pair[0].id))
+    followups = followups[:MAX_FOLLOWUPS]
+
+    stories = [story_view(e, items, settings, now, topics) for e in picked]
+    follow_views = []
+    for event, links in followups:
+        view = story_view(event, items, settings, now, topics)
+        view["followup"] = {"previous": event.editions[-1] if event.editions else None, "new": links}
+        follow_views.append(view)
+    for event in picked + [e for e, _ in followups]:
+        if date not in event.editions:
+            event.editions.append(date)
+
+    ranked = sorted(stories, key=lambda s: (-s["temp"], -(s["effective_score"] or 0), s["id"]))
+    highlights_n = int(settings.raw["editions"].get("highlights", 3))
     edition = {
         "date": date,
         "built_at": to_iso(now),
         "since": to_iso(since),
-        "stories": [story_view(e, items, settings) for e in picked],
+        "lead": ranked[0]["id"] if ranked else None,
+        "highlights": [s["id"] for s in ranked[1 : 1 + highlights_n]],
+        "stories": stories,
+        "followups": follow_views,
+        "near_misses": near_misses(events, items, settings, now, limit=int(settings.raw["feedback"]["near_misses_in_issue"])),
+        "stats": _stats(stories, follow_views),
         "delivered": {},
     }
     eds = state.setdefault("editions", {})

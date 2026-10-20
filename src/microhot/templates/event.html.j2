@@ -4,10 +4,17 @@
 {% block main %}
 <article class="event">
   <div class="event-head">
-    {{ m.reading(s, 'big') }}
+    <div class="gauge">{{ m.reading(s, 'big') }}{{ m.heat_notes(s) }}</div>
     <h1>{{ s.title[lang] }}</h1>
   </div>
-  {% if s.summary[lang] %}
+  {% if s.digest and (s.digest[lang] or s.digest['en']) %}
+  <div class="lede digest"{% if not s.digest[lang] %} lang="en"{% endif %}>
+    {% for para in (s.digest[lang] or s.digest['en']).split('\n\n') %}
+    <p>{{ para }}</p>
+    {% endfor %}
+    <p class="note">{{ t('overview_by', n=s.n_sources, by=s.digest.by) }}</p>
+  </div>
+  {% elif s.summary[lang] %}
   <p class="lede">{{ s.summary[lang] }}</p>
   {% elif s.summary['en'] %}
   <p class="lede" lang="en">{{ s.summary['en'] }}</p>
@@ -16,13 +23,15 @@
   <p class="pending">{{ t('pending') }}</p>
   {% endif %}
   <p><a class="original" href="{{ s.url }}">{{ t('original') }}: {{ s.source }}</a></p>
+  {{ m.chips(s) }}
 
   <section aria-labelledby="coverage-title">
     <h2 id="coverage-title">{{ t('coverage') }}</h2>
-    <p class="note">{{ t('why_temp', temp="%.1f"|format(s.temp), n=sources_label(s.n_sources)) }}</p>
+    <p class="note">{{ t('why_temp', temp="%.1f"|format(s.temp), n=sources_label(s.sources_48h or s.n_sources)) }}{% if s.sources_6h %} {{ t('why_recent', m=s.sources_6h) }}{% endif %}</p>
+    {% set update_ids = s.updates|map(attribute='id')|list %}
     <ul class="coverage">
       {% for l in s.links %}
-      <li><time datetime="{{ l.when }}">{{ when(l.when) }}</time><span class="src">{{ l.source }}</span><a href="{{ l.url }}">{{ l.title }}</a></li>
+      <li{% if l.id in update_ids %} class="is-update"{% endif %}><time datetime="{{ l.when }}">{{ when(l.when) }}</time><span class="src">{{ l.source }}{% if l.official %} <span class="tag">{{ t('official') }}</span>{% endif %}{% if l.id in update_ids %} <span class="badge badge-new">{{ t('badge_new') }}</span>{% endif %}</span><a href="{{ l.url }}">{{ l.title }}</a></li>
       {% endfor %}
     </ul>
   </section>
@@ -30,7 +39,7 @@
   {% if s.score is not none %}
   <section aria-labelledby="scoring-title">
     <h2 id="scoring-title">{{ t('scoring') }}</h2>
-    <p>{{ t('score_line', score=s.score, threshold=threshold) }}{% if s.opinions == 2 %} {{ t('opinions_2') }}{% endif %}</p>
+    <p>{{ t('score_line', score=s.effective_score, threshold=threshold) }}{% if s.opinions == 2 %} {{ t('opinions_2') }}{% endif %}{% if s.boost %} {{ t('boost_line', points=('+' ~ s.boost if s.boost > 0 else s.boost), why=s.boost_why|join(', ')) }}{% endif %}</p>
     <p>{{ beat_label }}, {{ t('type_' ~ s.type) }}, {{ t('tier_' ~ s.tier) }}.</p>
     <dl class="axes">
       {% for a in axes_order %}

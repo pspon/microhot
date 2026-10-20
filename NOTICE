@@ -11,8 +11,15 @@ The following parts are adapted from AIHOT:
 - prompts/write.md: translated and adapted from AIHOT's writing prompts
   (industry/prompts/summarize-article.md, rules-answer-first-summary.md,
   rules-self-contained-title.md, rules-anti-hallucination.md, rules-domain.md, safety.md).
+- prompts/digest.md: translated and condensed from AIHOT's story overview prompt
+  (industry/prompts/story-digest.md).
+- prompts/review.md: translated and condensed from AIHOT's period report prompt
+  (industry/prompts/report-period.md).
 - The heat formula (each independent source counted once within 48 hours, halving every
   24 hours), the rule-built daily edition, and the starter AI sources in config/sources.toml.
+- Ideas reimplemented in Python: the hot-list badges and their thresholds (surge, new,
+  rising; packages/backend/src/events/hot.ts), follow-ups in the daily edition, and measuring
+  selection against human labels (SelectBench, packages/backend/src/admin/selectbench.ts).
 
 AIHOT's license:
 

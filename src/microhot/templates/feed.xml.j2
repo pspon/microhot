@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0">
 <channel>
-<title>{{ site_name }} {{ site_name_zh }}</title>
+<title>{{ site_name }} {{ site_name_zh }}{% if feed_title %}: {{ feed_title }}{% endif %}</title>
 <link>{{ site_url }}{{ prefix }}/</link>
 <description>{{ tagline }}</description>
 <language>{{ 'en' if lang == 'en' else 'zh-tw' }}</language>

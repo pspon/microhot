@@ -171,6 +171,70 @@ section > h3 { font-size: 0.92rem; margin: 1rem 0 0.2rem; }
 .colophon p { margin: 0.25rem 0; }
 .colophon .tagline { color: var(--ink); }
 
+/* ---- heat change, badges, tags --------------------------------------------------------- */
+.gauge { display: flex; flex-direction: column; align-items: flex-start; gap: 0.15rem; }
+.change { font-size: 0.74rem; font-variant-numeric: tabular-nums; color: var(--muted); white-space: nowrap; }
+.change.up { color: var(--hot); }
+.badge {
+  font-size: 0.7rem;
+  line-height: 1.3;
+  padding: 0 0.32rem;
+  border-radius: 3px;
+  border: 1px solid currentColor;
+  white-space: nowrap;
+}
+.badge-spiking { color: var(--hot); }
+.badge-warming { color: var(--warm); }
+.badge-new { color: var(--cool); }
+.tag { color: var(--ink); font-weight: 600; }
+.chips { display: flex; flex-wrap: wrap; gap: 0.3rem 0.45rem; margin-top: 0.35rem; }
+.chip { font-size: 0.78rem; color: var(--muted); text-decoration: none; border-bottom: 1px dotted var(--muted); }
+.chip:hover { color: var(--ink); }
+.followup { margin: 0.35rem 0 0; font-size: 0.86rem; color: var(--muted); }
+.followup a { color: var(--ink); }
+.story.unseen .headline::before {
+  content: "";
+  display: inline-block;
+  width: 0.45em;
+  height: 0.45em;
+  margin-right: 0.4em;
+  border-radius: 50%;
+  background: var(--hot);
+  vertical-align: 0.12em;
+}
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ---- editions, reviews, topics, search -------------------------------------------------- */
+.count { font-weight: 400; color: var(--muted); font-variant-numeric: tabular-nums; margin-left: 0.25rem; }
+.edition-lead { margin-top: 0.8rem; }
+.edition-lead > h2 { font-size: 1rem; font-weight: 600; color: var(--muted); margin: 0.6rem 0 0.2rem; }
+.highlights { margin: 0; padding-left: 1.2rem; }
+.highlights li { padding: 0.15rem 0; }
+.pager { display: flex; justify-content: space-between; gap: 1rem; margin-top: 2rem; padding-top: 0.6rem; border-top: 1px solid var(--rule); font-size: 0.92rem; }
+.digest p { margin: 0 0 0.7rem; }
+.topic-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); gap: 0.15rem 1rem; }
+.topic-list li { padding: 0.25rem 0; }
+.plain { list-style: none; margin: 0 0 1rem; padding: 0; }
+.quiet { color: var(--muted); font-size: 0.92rem; margin: 0.4rem 0 0; }
+.quiet a { color: inherit; }
+.plain li { padding: 0.2rem 0; }
+.coverage li.is-update .src { color: var(--ink); }
+.search { margin: 0.8rem 0 0.4rem; }
+.search label { display: block; font-size: 0.9rem; color: var(--muted); margin-bottom: 0.3rem; }
+.search input {
+  width: 100%;
+  font: inherit;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  background: var(--paper);
+  color: var(--ink);
+}
+.results { list-style: none; margin: 0; padding: 0; }
+.results li { padding: 0.6rem 0; border-bottom: 1px solid var(--rule); }
+.results a { font-weight: 600; text-decoration: none; }
+.results a:hover { text-decoration: underline; }
+
 @media (max-width: 26rem) {
   :root { --col: 3.4rem; }
   html { font-size: 100%; }

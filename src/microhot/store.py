@@ -183,6 +183,34 @@ class Store:
                 break
         return rows[-limit:][::-1]
 
+    # ---- reviews -------------------------------------------------------------------------
+    def save_review(self, review: dict) -> None:
+        write_json(self.dir / "reviews" / f"{review['id']}.json", review)
+
+    def load_review(self, period_id: str) -> dict | None:
+        return read_json(self.dir / "reviews" / f"{period_id}.json")
+
+    def list_reviews(self) -> list[dict]:
+        folder = self.dir / "reviews"
+        if not folder.exists():
+            return []
+        reviews = [read_json(p) for p in folder.glob("*.json")]
+        return sorted((r for r in reviews if r), key=lambda r: (r["end"], r["kind"]), reverse=True)
+
+    # ---- plain files ---------------------------------------------------------------------
+    def write_text(self, rel: str, text: str) -> None:
+        path = self.dir / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+
+    def write_jsonl(self, path: Path, rows: list[dict]) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=".tmp-", suffix=".jsonl")
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            for row in rows:
+                fh.write(json.dumps(row, ensure_ascii=False, separators=(",", ":")) + "\n")
+        os.replace(tmp, path)
+
     @property
     def usage_dir(self) -> Path:
         return self.dir / "usage"

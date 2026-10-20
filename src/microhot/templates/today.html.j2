@@ -27,7 +27,7 @@
   <p class="note">{{ t('radar_note') }}</p>
   <ul class="radar-list">
     {% for s in radar %}
-    <li>{{ m.reading(s) }}<span class="radar-body"><a href="{{ s.url }}">{{ s.title[lang] }}</a> <span class="meta-inline">{{ source_line(s) }}</span></span></li>
+    <li><span class="gauge">{{ m.reading(s) }}{{ m.heat_notes(s) }}</span><span class="radar-body"><a href="{{ s.url }}">{{ s.title[lang] }}</a> <span class="meta-inline">{{ source_line(s) }}</span></span></li>
     {% endfor %}
   </ul>
 </section>

@@ -4,17 +4,43 @@
 {% block main %}
 <section class="day" aria-labelledby="edition-title">
   <h1 id="edition-title">{{ title }}</h1>
-  <p class="note">{% if edition.stories|length == 1 %}{{ t('story_1') }}{% else %}{{ t('stories_n', n=edition.stories|length) }}{% endif %}</p>
+  {% if stats_line %}<p class="note">{{ stats_line }}</p>{% endif %}
 </section>
+{% if lead %}
+<section class="edition-lead" aria-label="{{ t('highlights') }}">
+  {{ m.story(lead, lead=true, relative=false) }}
+  {% if highlights %}
+  <h2>{{ t('highlights') }}</h2>
+  <ul class="highlights">
+    {% for h in highlights %}
+    <li><a href="#s-{{ h.id }}">{{ h.title[lang] }}</a></li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</section>
+{% endif %}
 {% for g in groups %}
 <section class="beat" aria-labelledby="beat-{{ g.beat }}">
-  <h2 id="beat-{{ g.beat }}">{{ g.label }}</h2>
+  <h2 id="beat-{{ g.beat }}">{{ g.label }} <span class="count">{{ g.stories|length }}</span></h2>
   {% for s in g.stories %}
-  {{ m.story(s, relative=false) }}
+  {{ m.story(s, relative=false, anchor=true) }}
   {% endfor %}
 </section>
 {% endfor %}
-{% if not edition.stories %}
+{% if followups %}
+<section class="beat" aria-labelledby="followups-title">
+  <h2 id="followups-title">{{ t('followups') }} <span class="count">{{ followups|length }}</span></h2>
+  {% for s in followups %}
+  {{ m.story(s, relative=false) }}
+  {% endfor %}
+</section>
+{% endif %}
+{% if not edition.stories and not followups %}
 <p class="empty">{{ t('edition_empty') }}</p>
 {% endif %}
+<nav class="pager" aria-label="{{ t('nav_editions') }}">
+  {% if older %}<a href="{{ prefix }}/d/{{ older }}.html" rel="prev">{{ t('prev_edition') }}</a>{% endif %}
+  <a href="{{ prefix }}/d/{{ edition.date }}.md">{{ t('markdown_copy') }}</a>
+  {% if newer %}<a href="{{ prefix }}/d/{{ newer }}.html" rel="next">{{ t('next_edition') }}</a>{% endif %}
+</nav>
 {% endblock %}

@@ -1,0 +1,25 @@
+{% extends "base.html.j2" %}
+{% block title %}{{ t('topics_title') }} | {{ site_name }}{% endblock %}
+{% block main %}
+<section class="day" aria-labelledby="topics-title">
+  <h1 id="topics-title">{{ t('topics_title') }}</h1>
+  <p class="note">{{ t('topics_note') }}</p>
+</section>
+{% for g in groups %}
+<section class="beat" aria-labelledby="group-{{ loop.index }}">
+  <h2 id="group-{{ loop.index }}">{{ g.label }}</h2>
+  {% set active = g.pages|selectattr('count')|sort(attribute='count', reverse=true)|list %}
+  {% set quiet = g.pages|rejectattr('count')|list %}
+  {% if active %}
+  <ul class="topic-list">
+    {% for tp in active %}
+    <li><a href="{{ prefix }}/t/{{ tp.topic.id }}.html">{{ tp.topic.name(lang) }}</a> <span class="count">{{ tp.count }}</span></li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  {% if quiet %}
+  <p class="quiet">{{ t('topics_quiet') }} {% for tp in quiet %}<a href="{{ prefix }}/t/{{ tp.topic.id }}.html">{{ tp.topic.name(lang) }}</a>{% if not loop.last %}{{ t('list_sep') }}{% endif %}{% endfor %}</p>
+  {% endif %}
+</section>
+{% endfor %}
+{% endblock %}

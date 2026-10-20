@@ -5,13 +5,26 @@
   <h1 id="editions-title">{{ t('editions_title') }}</h1>
   <p class="note">{{ t('editions_note') }}</p>
 </section>
-{% if editions %}
-<ul class="edition-list">
-  {% for ed in editions %}
-  <li><a href="{{ prefix }}/d/{{ ed.date }}.html">{{ ed.label }}</a> <span class="meta-inline">{% if ed.count == 1 %}{{ t('story_1') }}{% else %}{{ t('stories_n', n=ed.count) }}{% endif %}</span></li>
-  {% endfor %}
-</ul>
-{% else %}
-<p class="empty">{{ t('edition_empty') }}</p>
+{% if reviews %}
+<section aria-labelledby="reviews-title">
+  <h2 id="reviews-title">{{ t('reviews_title') }}</h2>
+  <ul class="edition-list">
+    {% for r in reviews %}
+    <li><a href="{{ prefix }}{{ r.url }}">{{ r.label }}</a> <span class="meta-inline">{% if r.count == 1 %}{{ t('story_1') }}{% else %}{{ t('stories_n', n=r.count) }}{% endif %}</span></li>
+    {% endfor %}
+  </ul>
+</section>
 {% endif %}
+<section aria-labelledby="dailies-title">
+  <h2 id="dailies-title">{{ t('dailies_title') }}</h2>
+  {% if editions %}
+  <ul class="edition-list">
+    {% for ed in editions %}
+    <li><a href="{{ prefix }}/d/{{ ed.date }}.html">{{ ed.label }}</a> <span class="meta-inline">{% if ed.count == 1 %}{{ t('story_1') }}{% else %}{{ t('stories_n', n=ed.count) }}{% endif %}</span></li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="empty">{{ t('edition_empty') }}</p>
+  {% endif %}
+</section>
 {% endblock %}

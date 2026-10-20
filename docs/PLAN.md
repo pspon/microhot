@@ -24,21 +24,26 @@ Agreed on 2026-10-19. This is the reference for what MicroHOT is and why it is b
 
 ```
 GitHub Actions, 3× a day
- → fetch RSS/Atom            rules, filters, dedupe     0 tokens
- → group into events          lexical similarity         0 tokens
- → triage, ~20 per call       five-axis rubric           LLM
- → select                     tier thresholds + quotas   0 tokens
- → write EN + 繁中, ~4/call    top stories only           LLM
- → Taiwan guard               OpenCC s2twp               0 tokens
- → morning edition            rule-built                 0 tokens
- → render static site → Cloudflare Pages (password) → channels
+ → fetch RSS/Atom            rules, filters, mute, dedupe   0 tokens
+ → group into events          lexical similarity             0 tokens
+ → heat, badges, boosts       rules                          0 tokens
+ → triage, ~20 per call       five-axis rubric               LLM
+ → select                     tier thresholds + quotas       0 tokens
+ → write EN + 繁中, ~4/call    top stories only               LLM
+ → overview, big stories      3+ sources, ≤2 a day           LLM
+ → Taiwan guard               OpenCC s2twp                   0 tokens
+ → morning edition            rule-built, with follow-ups    0 tokens
+ → weekly/monthly review      rule-built + one overview      LLM, 1 call
+ → alerts                     rules                          0 tokens
+ → render static site → Cloudflare Pages (password)
+ → deliver: read ratings, send edition/review/alerts to channels
  → commit state to the data branch
 ```
 
 ## Token budget
 
 AIHOT averages about 6 model calls per item (930 calls for its first 152 items). MicroHOT targets
-10–15 calls per **day** for a similar volume, roughly 30k input and 6k output tokens:
+10–20 calls per **day** for a similar volume, roughly 35k input and 7k output tokens:
 
 1. Rules before models: canonical-URL and title dedupe, keyword filters on broad feeds, first import limited to
    the last 48 hours.
@@ -49,6 +54,9 @@ AIHOT averages about 6 model calls per item (930 calls for its first 152 items).
 4. Summaries are written from the feed text (up to 1,500 characters), never the full article.
 5. Hard caps: 40 calls and $0.05 a day across providers, plus a dollar cap per paid provider. Usage is logged per
    call and shown on the About page.
+6. Extras are rationed: an overview only for stories with three or more sources, at most two a day; one call
+   per weekly and per monthly review. Everything else added after the MVP (badges, follow-ups, topics,
+   search, feeds, ratings, alerts) is rule-built and costs no tokens.
 
 ## Cost
 
@@ -66,10 +74,25 @@ private site (Today, story pages, morning editions, About with sources, models, 
 history); private RSS per language; GitHub issue, email and Telegram channels; tests with fixture feeds and a
 fake model.
 
+## Ported from the live AIHOT (2026-10-19)
+
+After comparing MicroHOT with aihot.news, these were added, each kept to rules or a rationed call:
+
+| AIHOT feature | MicroHOT version |
+|---|---|
+| Hot list badges (surge, new, rising) and trend | *spiking*, *new*, *warming* badges and the temperature change since the last run |
+| Daily report with follow-ups | Lead story, highlights, stats line, prev/next links, Markdown copy, follow-ups when a covered story gains an official source or two new sources |
+| Entity and tag pages | Keyword topic pages (`config/topics.toml`), plus boost and mute rules |
+| Search, unread markers, RSS | Static search index, "new since your last visit" kept in the browser, RSS per beat and for editions |
+| Weekly and monthly reports | Reviews compiled from the editions with one overview call |
+| Story digests | Overviews for stories with 3+ sources, at most 2 a day |
+| SelectBench | 👍/👎 boxes in the GitHub issue, `microhot eval` and threshold suggestions on the About page |
+| Admin health checks | Alerts for failing feeds and providers, sent to your channels |
+
+Left out on purpose: accounts, comments, an admin UI, a database, and personalised "why it matters to you"
+notes (an extra call per story).
+
 ## Later
 
-- Weekly edition (one model call a week for an overview).
-- Site search (a static index).
-- Calibration set: label a few hundred items and measure selection precision and recall against the thresholds.
 - Sources without RSS (web pages, JSON APIs).
 - Optional small local embedding model (`model2vec`) for clustering, already wired in config.

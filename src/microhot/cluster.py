@@ -134,8 +134,7 @@ def merge_events(target: Event, other: Event, items: dict[str, Item]) -> None:
             target.item_ids.append(item_id)
         if item_id in items:
             items[item_id].event_id = target.id
-    if other.last_seen > target.last_seen:
-        target.last_seen = other.last_seen
+    target.last_seen = max(target.last_seen, other.last_seen)
     if other.score is not None and (target.score is None or other.score > target.score):
         target.type, target.axes, target.score = other.type, other.axes, other.score
         target.opinions, target.triaged_at, target.triaged_by = other.opinions, other.triaged_at, other.triaged_by
@@ -199,23 +198,38 @@ def assign_events(
     return stats
 
 
+RECENT_HOURS = 6
+
+
+def roll_heat(events: dict[str, Event], now: datetime) -> None:
+    """Keep each story's heat from the previous run, so the site can show the change since then."""
+    stamp = to_iso(now)
+    for event in events.values():
+        if event.is_live and event.heat_at and event.heat_at != stamp:
+            event.heat_prev, event.heat_prev_at = event.heat, event.heat_at
+
+
 def update_heat(events: dict[str, Event], items: dict[str, Item], settings: Settings, now: datetime) -> None:
     """Heat = each independent source counted once within the window, halving every half-life."""
     window = float(settings.heat["window_hours"])
     half_life = float(settings.heat["half_life_hours"])
+    stamp = to_iso(now)
     for event in events.values():
         if not event.is_live:
             continue
         latest: dict[str, float] = {}
-        sources: set[str] = set()
+        first_age: dict[str, float] = {}
         for item_id in event.item_ids:
             item = items.get(item_id)
             if not item:
                 continue
-            sources.add(item.source_id)
             age = max(0.0, hours_between(now, item.when()))
+            first_age[item.source_id] = max(first_age.get(item.source_id, age), age)
             if age <= window:
                 latest[item.source_id] = min(latest.get(item.source_id, age), age)
         event.heat = round(sum(0.5 ** (age / half_life) for age in latest.values()), 3)
-        if sources:
-            event.n_sources = len(sources)
+        event.sources_48h = len(latest)
+        event.sources_6h = sum(1 for age in first_age.values() if age < RECENT_HOURS)
+        event.heat_at = stamp
+        if first_age:
+            event.n_sources = len(first_age)

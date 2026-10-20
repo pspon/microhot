@@ -37,7 +37,7 @@ def test_full_run_picks_writes_and_publishes(project):
         assert "資料" in e.story["summary_zh"] and "使用者" in e.story["summary_zh"]
 
     # 06:30 Toronto: the morning edition is built.
-    assert report["edition"] == {"date": "2026-10-20", "stories": 2}
+    assert report["edition"] == {"date": "2026-10-20", "stories": 2, "followups": 0}
 
     public = project.public_dir
     for page in ["index.html", "zh-tw/index.html", "about.html", "zh-tw/about.html", "editions.html", "d/2026-10-20.html",
@@ -67,7 +67,7 @@ def test_runs_without_any_model_provider(project):
     fake = FakeLLM()
     report = _run(project, fake, environ={})
     assert fake.calls == []
-    assert report["llm"]["active"] == {"triage": [], "write": []}
+    assert report["llm"]["active"] == {"triage": [], "write": [], "digest": [], "review": []}
     index = (project.public_dir / "index.html").read_text(encoding="utf-8")
     assert "Summaries are off" in index and "Acme releases Nova-2" in index  # radar still shows headlines
 

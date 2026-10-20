@@ -16,9 +16,9 @@ from __future__ import annotations
 import os
 import time
 from collections import Counter
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Callable
 
 import httpx
 
@@ -93,6 +93,7 @@ class Router:
         self.exhausted = False
         self.errors: list[str] = []
         self.run_calls = 0
+        self.run_ok = 0
         self.run_usd = 0.0
         self.calls_today, self.usd_today = usage.today_totals(now)
 
@@ -105,13 +106,14 @@ class Router:
 
     def summary(self) -> dict:
         return {
-            "active": {step: self.chain(step) for step in ("triage", "write")},
+            "active": {step: self.chain(step) for step in ("triage", "write", "digest", "review")},
             "unconfigured": self.unconfigured,
             "disabled": self.disabled,
             "failures": dict(self.failures),
             "budget_skips": sorted(self.budget_skips),
             "exhausted": self.exhausted,
             "calls": self.run_calls,
+            "ok_calls": self.run_ok,
             "usd": round(self.run_usd, 6),
             "errors": self.errors[-20:],
         }
@@ -136,6 +138,7 @@ class Router:
         if result is not None:  # rejected requests (no tokens) don't count toward the daily cap
             self.calls_today += 1
         self.run_calls += 1
+        self.run_ok += 1 if ok else 0
         self.run_usd += usd
         self.usd_today[provider.name] = self.usd_today.get(provider.name, 0.0) + usd
         now = datetime.now(self.now.tzinfo) if self.now.tzinfo else self.now

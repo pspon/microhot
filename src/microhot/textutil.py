@@ -8,6 +8,7 @@ import re
 import unicodedata
 from datetime import UTC, datetime
 from html.parser import HTMLParser
+from itertools import pairwise
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 # ---- time ------------------------------------------------------------------------------
@@ -27,7 +28,7 @@ def parse_iso(value: str | None) -> datetime | None:
     if not value:
         return None
     try:
-        dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        dt = datetime.fromisoformat(value)  # Python 3.11+ reads a trailing "Z"
     except ValueError:
         return None
     if dt.tzinfo is None:
@@ -117,9 +118,8 @@ def canonical_url(url: str) -> str:
     if scheme == "http":
         scheme = "https"
     host = parts.netloc.lower()
-    if host.startswith("www."):
-        host = host[4:]
-    if host.endswith(":443") or host.endswith(":80"):
+    host = host.removeprefix("www.")
+    if host.endswith((":443", ":80")):
         host = host.rsplit(":", 1)[0]
     path = re.sub(r"/{2,}", "/", parts.path or "/")
     if len(path) > 1 and path.endswith("/"):
@@ -181,7 +181,7 @@ def tokens(text: str) -> list[str]:
     for raw in re.findall(r"[a-z0-9][a-z0-9.\-+]*[a-z0-9+]|[a-z0-9]|[㐀-鿿豈-﫿]+", text):
         if _CJK.match(raw):
             chars = list(raw)
-            out.extend(a + b for a, b in zip(chars, chars[1:]))
+            out.extend(a + b for a, b in pairwise(chars))
             if len(chars) == 1:
                 out.append(chars[0])
             continue
@@ -189,10 +189,12 @@ def tokens(text: str) -> list[str]:
         if not word or word in _STOPWORDS:
             words.append("")
             continue
+        if "-" in word:  # "1M-token" should also meet "1M tokens", "open-weight" meet "open weights"
+            out.extend(_stem(part) for part in word.split("-") if len(part) >= 2 and part not in _STOPWORDS)
         word = _stem(word)
         words.append(word)
         out.append(word)
-    out.extend(f"{a} {b}" for a, b in zip(words, words[1:]) if a and b)
+    out.extend(f"{a} {b}" for a, b in pairwise(words) if a and b)
     return out
 
 

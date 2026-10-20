@@ -1,0 +1,27 @@
+{% extends "base.html.j2" %}
+{% import "_macros.html.j2" as m with context %}
+{% block title %}{{ name }} | {{ site_name }}{% endblock %}
+{% block main %}
+<section class="day" aria-labelledby="topic-title">
+  <h1 id="topic-title">{{ name }}</h1>
+  <p class="note"><a href="{{ prefix }}/topics.html">{{ t('topics_title') }}</a></p>
+</section>
+<section class="beat" aria-labelledby="picked-title">
+  <h2 id="picked-title">{{ t('topic_picked') }} <span class="count">{{ tp.picked|length }}</span></h2>
+  {% for s in tp.picked %}
+  {{ m.story(s, relative=false) }}
+  {% else %}
+  <p class="empty">{{ t('topic_empty') }}</p>
+  {% endfor %}
+</section>
+{% if tp.other %}
+<section class="radar" aria-labelledby="other-title">
+  <h2 id="other-title">{{ t('topic_other') }}</h2>
+  <ul class="radar-list">
+    {% for s in tp.other %}
+    <li><span class="gauge">{{ m.reading(s) }}</span><span class="radar-body"><a href="{{ s.url }}">{{ s.title[lang] }}</a> <span class="meta-inline">{{ source_line(s) }}</span></span></li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+{% endblock %}

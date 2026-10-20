@@ -2,9 +2,18 @@
 <span class="reading {{ s.temp_class }}{% if size %} {{ size }}{% endif %}">{{ "%.1f"|format(s.temp) }}°</span>
 {%- endmacro %}
 
-{% macro story(s, lead=false, relative=true) -%}
-<article class="story{% if lead %} lead{% endif %}">
-  {{ reading(s) }}
+{% macro heat_notes(s) -%}
+{% if s.temp_change is not none and s.temp_change != 0 %}<span class="change {{ 'up' if s.temp_change > 0 else 'down' }}" title="{{ t('temp_since') }}">{{ fmt_change(s.temp_change) }}</span>{% endif %}
+{% for b in s.badges %}<span class="badge badge-{{ b }}">{{ t('badge_' ~ b) }}</span>{% endfor %}
+{%- endmacro %}
+
+{% macro chips(s) -%}
+{% if s.topics %}<span class="chips">{% for tp in s.topics[:3] %}<a class="chip" href="{{ prefix }}/t/{{ tp.id }}.html">{{ tp[lang] }}</a>{% endfor %}</span>{% endif %}
+{%- endmacro %}
+
+{% macro story(s, lead=false, relative=true, anchor=false) -%}
+<article class="story{% if lead %} lead{% endif %}"{% if s.selected_at %} data-picked="{{ s.selected_at }}"{% endif %}{% if anchor %} id="s-{{ s.id }}"{% endif %}>
+  <div class="gauge">{{ reading(s) }}{{ heat_notes(s) }}</div>
   <div class="story-body">
     <h3 class="headline"><a href="{{ s.url }}">{{ s.title[lang] }}</a></h3>
     {% if s.summary[lang] %}
@@ -15,11 +24,18 @@
     {% if not s.written %}
     <p class="pending">{{ t('pending') }}</p>
     {% endif %}
+    {% if s.followup is defined and s.followup %}
+    <p class="followup">{% if s.followup.previous %}{{ t('followup_earlier') }} <a href="{{ prefix }}/d/{{ s.followup.previous }}.html">{{ edition_label(s.followup.previous) }}</a>{{ t('followup_new') }}{% else %}{{ t('followup_new_only') }}{% endif %} {% for l in s.followup.new[:4] %}<a href="{{ l.url }}">{{ l.source }}</a>{% if not loop.last %}{{ t('list_sep') }}{% endif %}{% endfor %}</p>
+    {% elif s.updates %}
+    <p class="followup">{{ t('updates_n', n=s.updates|length) }}</p>
+    {% endif %}
     <p class="meta">
       <span>{{ source_line(s) }}</span>
+      {% if s.official %}<span class="tag">{{ t('official') }}</span>{% endif %}
       <span>{% if relative %}{{ ago(s.last_seen or s.first_seen) }}{% else %}{{ when(s.selected_at or s.first_seen) }}{% endif %}</span>
       {% if s.id in event_pages %}<a href="{{ prefix }}/e/{{ s.id }}.html">{{ t('details') }}</a>{% endif %}
     </p>
+    {{ chips(s) }}
   </div>
 </article>
 {%- endmacro %}

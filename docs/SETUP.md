@@ -22,7 +22,7 @@ for. One key is enough to start.
 | `CLOUDFLARE_AI_TOKEN` | Cloudflare → My Profile → API Tokens, with Workers AI permission (also needs `CLOUDFLARE_ACCOUNT_ID`) | Daily free allowance |
 
 Use one account per provider. Splitting the workload across several free accounts breaks the providers'
-terms and can get the account suspended; it is also unnecessary, since MicroHOT makes about 10–15 calls a day.
+terms and can get the account suspended; it is also unnecessary, since MicroHOT makes about 10–20 calls a day.
 
 ## 2. The private site (Cloudflare Pages)
 
@@ -47,8 +47,9 @@ Until Cloudflare is set up, each run attaches the built site to the run as a dow
 The first run at or after 06:00 builds the morning edition.
 
 Open the site, sign in with any username and `SITE_PASSWORD`, and add it to your home screen.
-Private RSS feeds are at `/feed.xml` and `/zh-tw/feed.xml` (readers that support basic auth accept
-`https://any:PASSWORD@your-site/feed.xml`).
+Private RSS feeds (listed on the About page) are at `/feed.xml` for all picks, `/feed/ai.xml` and
+`/feed/gov.xml` per beat, and `/feed/editions.xml` for the editions and reviews; add `/zh-tw` in front for
+Traditional Chinese. Readers that support basic auth accept `https://any:PASSWORD@your-site/feed.xml`.
 
 ## 4. Delivery channels (optional)
 
@@ -56,21 +57,50 @@ Each channel runs only when it is `enabled = true` in `config/site.toml` **and**
 Choose the language with `lang = "en"`, `"zh-TW"` or `"both"`.
 
 - **GitHub app**: on by default and needs no secrets. Each morning's edition is posted as an issue (the previous
-  one is closed). To get a push notification, watch the repository for issues in the GitHub app.
+  one is closed), with 👍/👎 boxes for rating (step 5). Weekly and monthly reviews arrive as issues labelled
+  `review`, alerts as issues labelled `alert`. To get a push notification, watch the repository for issues in
+  the GitHub app.
 - **Email**: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `EMAIL_TO` (optional `EMAIL_FROM`).
   For Gmail: turn on 2-Step Verification, create an app password, then use `smtp.gmail.com`, port `465`,
   your address as user and recipient, and the app password.
 - **Telegram**: create a bot with @BotFather (`/newbot`) for `TELEGRAM_BOT_TOKEN`. Send your bot any message,
   then open `https://api.telegram.org/bot<TOKEN>/getUpdates` and copy `chat.id` into `TELEGRAM_CHAT_ID`.
 
-## 5. Tuning
+Weekly reviews are built on Mondays (for the week before) and monthly reviews on the 1st, from the morning
+editions, and go to the same channels.
+
+**Alerts** go to the channels listed in `[alerts] channels` (GitHub issue and Telegram by default): a feed that
+fails three runs in a row (sent once, until it works again), a model provider turned off because its key was
+rejected, the daily call cap being reached, or a run where no provider worked. If a run fails outright, GitHub
+emails you about the failed workflow as usual.
+
+## 5. Rate the picks (optional)
+
+The morning GitHub issue lists each pick with two boxes, 👍 *useful* and 👎 *not for me*, and a short list of
+near misses with a 👍 box for any you would have wanted. Tick them in the GitHub app or on the web; the next
+run reads the last 14 days of issues into `labels.jsonl` on the data branch. Unticking removes the rating.
+
+The About page shows how many rated picks were useful. Once a tier has 10 ratings (`[feedback] min_labels`),
+it also suggests a threshold, the one that best balances what you liked against what you would have wanted.
+To see the details locally, check out the data branch next to the code and run the eval command:
+`git fetch origin data && git worktree add data FETCH_HEAD`, then `uv run microhot eval`. Thresholds never
+change on their own: move them in `config/site.toml` when the suggestion looks right.
+
+## 6. Tuning
 
 - **What it covers**: `config/sources.toml` (feeds, beat, tier, keyword filters).
 - **What gets picked**: thresholds, second opinions and daily quotas per beat in `config/site.toml`; the reader
   description and rubric in `prompts/triage.md`. The About page's "Near misses" table shows what just missed.
+- **Your own nudges**: `[adjust]` in `config/site.toml`. `boost` adds points when a story matches a topic or a
+  pattern (for example `{ topic = "canada", points = 8 }`); `mute` drops matching items before any model sees
+  them. Boosted stories show their points on the story page.
+- **Topic pages**: `config/topics.toml`, one entry per topic with a few patterns. The Topics page lists them.
+- **Overviews and reviews**: `[digest]` (which stories get an overview, and how many a day) and `[reviews]`
+  in `config/site.toml`; their wording in `prompts/digest.md` and `prompts/review.md`.
 - **How it is written**: `prompts/write.md`.
-- **Which models, in which order**: `[llm] triage` and `write` in `config/site.toml`. Remove a provider from both
-  lists, or simply don't set its key, and it is never called.
+- **Which models, in which order**: `[llm] triage` and `write` in `config/site.toml` (overviews and reviews use
+  the `write` list unless you add `digest` or `review` lists). Remove a provider from the lists, or simply
+  don't set its key, and it is never called.
 - **Costs**: `max_calls_per_day` and `usd_cap_per_day` in `config/site.toml`, plus `usd_cap_per_day` per paid
   provider. Usage by provider is on the About page.
 
@@ -80,6 +110,7 @@ Choose the language with `lang = "en"`, `"zh-TW"` or `"both"`.
 uv sync
 uv run microhot status          # which providers and channels are configured (no calls)
 GEMINI_API_KEY=... uv run microhot run
+uv run microhot eval            # ratings vs thresholds
 python -m http.server -d public  # then open http://localhost:8000
 uv run pytest
 ```

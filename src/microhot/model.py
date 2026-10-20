@@ -62,13 +62,22 @@ class Event:
     triaged_at: str | None = None
     triaged_by: str | None = None
     triage_tries: int = 0
+    adjust: dict | None = None  # boost points from config rules: {"points": int, "why": [...]}
     # selection and writing
     selected_at: str | None = None
     story: dict | None = None
     write_attempts: int = 0
+    digest: dict | None = None  # overview for big stories (several sources)
+    digest_tries: int = 0
+    editions: list[str] = field(default_factory=list)  # editions that carried this story
     # ranking
     heat: float = 0.0
+    heat_at: str | None = None
+    heat_prev: float | None = None  # heat at the previous run, for the change shown on the site
+    heat_prev_at: str | None = None
     n_sources: int = 0
+    sources_48h: int = 0  # independent sources inside the heat window
+    sources_6h: int = 0  # sources whose first report on this story is under 6 hours old
     merged_into: str | None = None
 
     @property

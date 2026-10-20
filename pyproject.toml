@@ -27,6 +27,11 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src/microhot"]
 
+[tool.ruff.lint]
+# Broad catches are deliberate: a failing feed, channel or render never fails the run.
+# Bad model JSON raises ValueError on purpose: it triggers the one repair retry.
+ignore = ["BLE001", "TRY004", "SIM905"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"

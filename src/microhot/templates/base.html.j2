@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="{{ t('html_lang') }}">
+<html lang="{{ t('html_lang') }}" data-unseen="{{ t('unseen') }}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -8,8 +8,8 @@
 <meta name="theme-color" content="#f3f6f6" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#101a22" media="(prefers-color-scheme: dark)">
 <title>{% block title %}{{ site_name }} {{ site_name_zh }}{% endblock %}</title>
-<link rel="stylesheet" href="/static/style.css?v={{ css_version }}">
-<link rel="icon" href="/static/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/static/style.css?v={{ static_version }}">
+<link rel="icon" href="/static/icon.svg?v={{ static_version }}" type="image/svg+xml">
 <link rel="alternate" type="application/rss+xml" title="{{ site_name }}" href="{{ prefix }}/feed.xml">
 <link rel="alternate" hreflang="{{ alt_lang_attr }}" href="{{ alt_url }}">
 </head>
@@ -20,6 +20,8 @@
   <nav class="nav">
     <a href="{{ prefix }}/"{% if page == 'today' %} aria-current="page"{% endif %}>{{ t('nav_today') }}</a>
     <a href="{{ prefix }}/editions.html"{% if page in ('editions', 'edition') %} aria-current="page"{% endif %}>{{ t('nav_editions') }}</a>
+    <a href="{{ prefix }}/topics.html"{% if page == 'topics' %} aria-current="page"{% endif %}>{{ t('nav_topics') }}</a>
+    <a href="{{ prefix }}/search.html"{% if page == 'search' %} aria-current="page"{% endif %}>{{ t('nav_search') }}</a>
     <a href="{{ prefix }}/about.html"{% if page == 'about' %} aria-current="page"{% endif %}>{{ t('nav_about') }}</a>
     <a class="switch" href="{{ alt_url }}" hreflang="{{ alt_lang_attr }}" lang="{{ alt_lang_attr }}" title="{{ t('switch_title') }}">{{ t('switch_label') }}</a>
   </nav>
@@ -32,5 +34,7 @@
   <p>{{ t('footer') }}</p>
   <p>{{ t('updated', time=updated) }} <a href="{{ prefix }}/feed.xml">{{ t('feed') }}</a></p>
 </footer>
+<script src="/static/visit.js?v={{ static_version }}" defer></script>
+{% block scripts %}{% endblock %}
 </body>
 </html>

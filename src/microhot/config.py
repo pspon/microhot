@@ -50,6 +50,7 @@ DEFAULTS: dict = {
     "llm": {
         "triage": [],
         "write": [],
+        # "digest" and "review" default to the write chain when not set.
         "triage_batch_size": 20,
         "write_batch_size": 4,
         "max_calls_per_day": 40,
@@ -58,6 +59,12 @@ DEFAULTS: dict = {
         "write_text_chars": 1500,
         "recent_events_in_prompt": 25,
     },
+    "adjust": {"boost": [], "mute": [], "max_points": 20},
+    "editions": {"highlights": 3, "followup_min_new_sources": 2},
+    "digest": {"enabled": True, "min_sources": 3, "max_per_day": 2, "regrow_sources": 2, "reports": 6, "report_chars": 700},
+    "reviews": {"weekly": True, "monthly": True, "weekly_stories": 12, "monthly_stories": 20, "overview": True},
+    "feedback": {"near_misses_in_issue": 5, "min_labels": 10},
+    "alerts": {"feed_errors_in_a_row": 3, "channels": ["github_issue", "telegram"]},
     "providers": {},
     "channels": {},
     "retention": {"items_days": 30, "events_days": 30},
@@ -81,10 +88,10 @@ class Source:
 
     def matches(self, text: str) -> bool:
         """Apply the include/exclude keyword rules (no model call)."""
-        if self.exclude and any(re.search(p, text, re.I) for p in self.exclude):
+        if self.exclude and any(re.search(p, text, re.IGNORECASE) for p in self.exclude):
             return False
         if self.include:
-            return any(re.search(p, text, re.I) for p in self.include)
+            return any(re.search(p, text, re.IGNORECASE) for p in self.include)
         return True
 
 
@@ -294,9 +301,13 @@ def load_settings(root: Path | str | None = None) -> Settings:
     sources_raw = tomllib.loads(sources_path.read_text(encoding="utf-8")) if sources_path.exists() else {}
     sources = _parse_sources(sources_raw)
     providers = _parse_providers(raw.get("providers", {}))
-    for step in ("triage", "write"):
+    for step in ("digest", "review"):
+        raw["llm"].setdefault(step, list(raw["llm"].get("write", [])))
+    for step in ("triage", "write", "digest", "review"):
         unknown = [p for p in raw["llm"].get(step, []) if p not in providers]
         if unknown:
             raise ValueError(f"llm.{step} lists undefined providers: {', '.join(unknown)}")
+    for pattern in raw["adjust"].get("mute", []) + [r["pattern"] for r in raw["adjust"].get("boost", []) if "pattern" in r]:
+        re.compile(pattern)
     ZoneInfo(raw["site"]["timezone"])  # validate early
     return Settings(root=root, raw=raw, sources=sources, providers=providers)

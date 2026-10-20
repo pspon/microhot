@@ -18,6 +18,23 @@ four stories. Heat counts each independent source once over 48 hours, halving ev
 shows it as a body temperature: 微熱 means a slight fever. The first run after 06:00 Toronto time builds the
 morning edition and sends it to the channels you have turned on.
 
+Most of what you see costs no tokens at all:
+
+- **Hot markers**: stories show their temperature, its change since the last run, and *spiking*, *new* or
+  *warming* badges.
+- **Richer editions**: a lead story, highlights, a stats line, links to the previous and next edition, a
+  Markdown copy, and **follow-ups** when an earlier story gains an official source or several new ones.
+- **Topics** (`config/topics.toml`): keyword pages such as Canada, the EU AI Act or agents, which you can also
+  **boost** by a few points or **mute** entirely.
+- **Search, feeds and "new since your last visit"**: a static search index, RSS per beat and for editions, and
+  a dot on stories picked since you last opened the site (kept in your browser only).
+- **Ratings**: tick 👍 or 👎 in the morning GitHub issue; `microhot eval` and the About page tell you whether
+  the thresholds match your taste.
+- **Alerts**: a feed failing three runs in a row, or a model provider failing, sends you a note.
+
+A few things spend a little: an **overview** for big stories with three or more sources (at most two a day),
+and **weekly and monthly reviews** with a short overview (one call each).
+
 Details: [docs/PLAN.md](docs/PLAN.md).
 
 ## Set up
@@ -30,9 +47,11 @@ Cloudflare secrets, then run **Actions → MicroHOT run**.
 | To change | Edit |
 |---|---|
 | Feeds, beats, source tiers, keyword filters | `config/sources.toml` |
-| Thresholds, quotas, schedule-related settings, model order, caps, channels | `config/site.toml` |
+| Topic pages | `config/topics.toml` |
+| Thresholds, quotas, boost and mute rules, model order, caps, channels, alerts | `config/site.toml` |
 | What counts as important, and for whom | `prompts/triage.md` |
 | How stories are written in English and 繁中 | `prompts/write.md` |
+| Overviews for big stories, and the review overviews | `prompts/digest.md`, `prompts/review.md` |
 | Run times | `.github/workflows/run.yml` |
 
 ## Commands
@@ -40,8 +59,9 @@ Cloudflare secrets, then run **Actions → MicroHOT run**.
 ```bash
 uv run microhot status    # configured providers and channels; makes no calls
 uv run microhot run       # one full run (use --no-llm to skip model calls)
-uv run microhot deliver   # send today's edition to ready channels
+uv run microhot deliver   # read your ratings, send today's edition, reviews and alerts
 uv run microhot render    # rebuild the site from saved data
+uv run microhot eval      # how well the thresholds match your 👍/👎 ratings
 uv run pytest
 ```
 

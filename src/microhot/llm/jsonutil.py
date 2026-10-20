@@ -5,8 +5,8 @@ from __future__ import annotations
 import json
 import re
 
-_THINK = re.compile(r"<think>.*?</think>", re.S | re.I)
-_FENCE = re.compile(r"```(?:json)?\s*(.*?)```", re.S | re.I)
+_THINK = re.compile(r"<think>.*?</think>", re.DOTALL | re.IGNORECASE)
+_FENCE = re.compile(r"```(?:json)?\s*(.*?)```", re.DOTALL | re.IGNORECASE)
 
 
 def extract_json(text: str) -> dict:

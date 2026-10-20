@@ -8,6 +8,7 @@ from datetime import datetime
 from .config import TIER_RANK, Settings
 from .model import Event, Item
 from .textutil import hours_between, parse_iso, to_iso
+from .topics import effective_score
 
 _RANK_TO_TIER = {rank: tier for tier, rank in TIER_RANK.items()}
 
@@ -49,9 +50,9 @@ def select_events(events: dict[str, Event], items: dict[str, Item], settings: Se
         and e.score is not None
         and e.type != "off_topic"
         and is_candidate(e, settings, now)
-        and e.score >= threshold_for_event(e, items, settings)
+        and effective_score(e) >= threshold_for_event(e, items, settings)
     ]
-    candidates.sort(key=lambda e: (-(e.score or 0), -e.heat, e.created))
+    candidates.sort(key=lambda e: (-effective_score(e), -e.heat, e.created))
 
     chosen: list[Event] = []
     for event in candidates:
@@ -73,7 +74,7 @@ def near_misses(events: dict[str, Event], items: dict[str, Item], settings: Sett
         if not is_candidate(e, settings, now):
             continue
         threshold = threshold_for_event(e, items, settings)
-        rows.append((threshold - e.score, e, threshold))
+        rows.append((threshold - effective_score(e), e, threshold))
     rows.sort(key=lambda r: (r[0], -r[1].heat))
     out = []
     for gap, event, threshold in rows[:limit]:
@@ -83,7 +84,8 @@ def near_misses(events: dict[str, Event], items: dict[str, Item], settings: Sett
                 "id": event.id,
                 "title": rep.title if rep else event.id,
                 "url": rep.url if rep else "",
-                "score": event.score,
+                "score": effective_score(event),
+                "boost": (event.adjust or {}).get("points", 0),
                 "threshold": threshold,
                 "gap": gap,
                 "type": event.type,
