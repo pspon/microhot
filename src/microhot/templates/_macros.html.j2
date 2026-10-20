@@ -11,6 +11,12 @@
 {% if s.topics %}<span class="chips">{% for tp in s.topics[:3] %}<a class="chip" href="{{ prefix }}/t/{{ tp.id }}.html">{{ tp[lang] }}</a>{% endfor %}</span>{% endif %}
 {%- endmacro %}
 
+{% macro why(s) -%}
+{% if s.why is defined and s.why %}
+<p class="why"{% if not s.why[lang] %} lang="en"{% endif %}><span class="why-label">{{ t('why_label') }}</span> {{ s.why[lang] or s.why['en'] }}</p>
+{% endif %}
+{%- endmacro %}
+
 {% macro story(s, lead=false, relative=true, anchor=false) -%}
 <article class="story{% if lead %} lead{% endif %}"{% if s.selected_at %} data-picked="{{ s.selected_at }}"{% endif %}{% if anchor %} id="s-{{ s.id }}"{% endif %}>
   <div class="gauge">{{ reading(s) }}{{ heat_notes(s) }}</div>
@@ -21,6 +27,7 @@
     {% elif s.summary['en'] %}
     <p class="summary" lang="en">{{ s.summary['en'] }}</p>
     {% endif %}
+    {{ why(s) }}
     {% if not s.written %}
     <p class="pending">{{ t('pending') }}</p>
     {% endif %}

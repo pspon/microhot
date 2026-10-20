@@ -1,0 +1,29 @@
+name: Check sources
+
+# Reads every source once from GitHub's servers (the same network the scheduled runs use) and
+# lists what each would yield: HTTP status, entries, how many pass the keyword rules, the newest
+# date and a sample headline. No model calls, nothing is saved. Runs on pull requests that touch
+# the sources or the fetch code, and on demand from the Actions tab.
+on:
+  pull_request:
+    paths:
+      - "config/sources.toml"
+      - "src/microhot/fetch.py"
+      - ".github/workflows/sources.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+      - name: Read every source
+        # Paused sources are included, so you can see when one starts working again.
+        run: uv run --frozen microhot sources --check --all

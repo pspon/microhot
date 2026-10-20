@@ -1,6 +1,7 @@
 # Topic pages. A story belongs to a topic when its headline, summary or text matches any pattern
-# (regular expressions, case-insensitive). Rules only: no model calls.
-#   group: "org" (companies and labs), "gov" (governance), "tech" (technology areas)
+# (regular expressions, case-insensitive; wrap a pattern in (?-i:...) to match case exactly).
+# Rules only: no model calls.
+#   group: "org" (companies and labs), "gov" (governance), "public" (public services), "tech" (technology areas)
 # Topic ids can also be used for boost rules in config/site.toml [adjust].
 
 # ---- Companies and labs ------------------------------------------------------------------
@@ -68,14 +69,14 @@ id = "canada"
 name_en = "Canada"
 name_zh = "加拿大"
 group = "gov"
-patterns = ['Canada', 'Canadian', 'Ottawa', 'Treasury Board', 'Innovation, Science and Economic Development', '\bISED\b', 'AI Safety Institute of Canada', 'Canadian AI Safety Institute', '加拿大']
+patterns = ['Canada', 'Canadian', 'Ottawa', 'Treasury Board', 'Innovation, Science and Economic Development', '\bISED\b', 'AI Safety Institute of Canada', 'Canadian AI Safety Institute', 'Evan Solomon', 'House of Commons', '加拿大']
 
 [[topic]]
 id = "ontario"
 name_en = "Ontario"
 name_zh = "安大略省"
 group = "gov"
-patterns = ['Ontario', 'Queen.s Park', '安大略']
+patterns = ['Ontario', 'Queen.s Park', 'Toronto', '安大略', '多倫多']
 
 [[topic]]
 id = "eu-ai-act"
@@ -106,6 +107,20 @@ group = "gov"
 patterns = ['public sector', 'public service', 'government (use|agenc|department|services)', 'civil serv', 'procurement', 'automated decision', 'algorithmic impact', 'digital government']
 
 [[topic]]
+id = "ops"
+name_en = "Ontario Public Service"
+name_zh = "安大略省公務體系"
+group = "gov"
+patterns = ['Ontario Public Service', '(?-i:\bOPS\b)', 'Responsible Use of (Artificial Intelligence|AI) Directive', 'Trustworthy (AI|Artificial Intelligence) Framework', 'Digital Security and Trust', '\bBill 194\b', 'Ontario (ministry|ministries|government) (use|uses|using|staff)', 'Auditor General of Ontario', 'Treasury Board Secretariat of Ontario']
+
+[[topic]]
+id = "canada-law"
+name_en = "Canadian AI and privacy law"
+name_zh = "加拿大 AI 與隱私法規"
+group = "gov"
+patterns = ['\bAIDA\b', 'Artificial Intelligence and Data Act', 'Consumer Privacy Protection Act', '\bPIPEDA\b', 'Privacy Act (reform|review|modernization)', '\b(M)?FIPPA\b', '\bPHIPA\b', 'Freedom of Information and Protection of Privacy', 'Directive on Automated Decision', 'Algorithmic Impact Assessment', '\bBill (C|S)-\d+', '\bBill \d+\b.*Ontario|Ontario.*\bBill \d+\b', 'Privacy Commissioner', 'Information and Privacy Commissioner']
+
+[[topic]]
 id = "privacy"
 name_en = "Privacy and data protection"
 name_zh = "隱私與資料保護"
@@ -132,6 +147,36 @@ name_en = "Work and jobs"
 name_zh = "工作與就業"
 group = "gov"
 patterns = ['\bjob (loss|losses|cuts|market|seekers?|security|displacement)', '\bjobs (report|data|lost|cut|at risk)', '\b(lose|lost|losing|cuts?|cutting|replac\w*|eliminat\w*) (\S+ ){0,3}jobs\b', 'workforce', 'employment', 'layoffs?', 'labou?r market', '(trade|labou?r) unions?', '\bunioni[sz]', 'white-collar']
+
+# ---- Public services ----------------------------------------------------------------------
+
+[[topic]]
+id = "health"
+name_en = "Health care"
+name_zh = "醫療照護"
+group = "public"
+patterns = ['hospitals?\b', 'health ?care', 'health system', 'patients?\b', 'clinical', '\bclinicians?\b', 'physicians?', '\bnurs(e|es|ing)\b', '(AI|medical|ambient) scribes?', 'Ontario Health', 'Canada Health Infoway', 'public health']
+
+[[topic]]
+id = "education"
+name_en = "Schools and universities"
+name_zh = "學校與大學"
+group = "public"
+patterns = ['school boards?', 'classrooms?', '\bK-12\b', 'teachers?\b', 'students?\b', 'post-secondary', 'colleges? and universit', 'Ministry of Education']
+
+[[topic]]
+id = "municipal"
+name_en = "Cities and municipalities"
+name_zh = "城市與地方政府"
+group = "public"
+patterns = ['municipal', 'City of Toronto', 'city (council|hall|staff)', 'Toronto (city|council)', 'police (service|services|board|chief)', 'Association of Municipalities', 'regional (government|municipality)', 'smart cit(y|ies)']
+
+[[topic]]
+id = "procurement"
+name_en = "Public procurement and funding"
+name_zh = "政府採購與資助"
+group = "public"
+patterns = ['procurement', 'request for (proposals?|information)', '\bRFP\b', 'standing offer', 'anchor customer', 'government (contract|funding|investment)', '(government|province|Ontario|Canada|Ottawa|federal|minister)[^.]{0,40}\binvest(s|ing|ment)?\b']
 
 # ---- Technology areas ---------------------------------------------------------------------
 

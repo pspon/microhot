@@ -280,7 +280,7 @@ class SiteBuilder:
                     path,
                     s=story,
                     beat_label=self._beat_label(story["beat"], lang),
-                    threshold=self.settings.threshold_for(story["tier"]),
+                    threshold=self.settings.threshold_for(story["tier"], story["beat"]),
                     axes_order=AXES,
                 )
             for i, ed in enumerate(editions):

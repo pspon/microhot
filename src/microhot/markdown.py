@@ -39,6 +39,9 @@ def _story_lines(story: dict, settings: Settings, lang: str, *, checkboxes: bool
     lines = [f"**[{title}]({story['url']})** {' · '.join(tags)}  "]
     if summary:
         lines.append(f"{summary}  ")
+    why = (story.get("why") or {}).get(lang) or (story.get("why") or {}).get("en")
+    if why:
+        lines.append(f"_{i18n.t(lang, 'why_line', text=why)}_  ")
     if story.get("followup"):
         new = story["followup"]["new"]
         names = ", ".join(dict.fromkeys(link["source"] for link in new))

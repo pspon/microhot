@@ -1,4 +1,4 @@
-"""Command line: `microhot run | deliver | render | status | eval`."""
+"""Command line: `microhot run | deliver | render | status | eval | sources`."""
 
 from __future__ import annotations
 
@@ -10,6 +10,7 @@ from .alerts import send_pending
 from .channels import channel_status, deliver
 from .config import load_settings
 from .feedback import collect_labels, eval_lines, evaluate
+from .fetch import check_sources
 from .llm import Router, UsageLog
 from .pipeline import run, summary_lines
 from .prompts import load_prompt
@@ -28,6 +29,28 @@ def _step_summary(lines: list[str]) -> None:
             fh.write("\n".join(f"- {line}" if i else f"### {line}" for i, line in enumerate(lines)) + "\n")
 
 
+def _print_source_checks(rows: list[dict]) -> None:
+    """A plain table for the terminal, and a Markdown table in the GitHub Actions summary."""
+    bad = [r for r in rows if r["status"] != "ok"]
+    quiet = [r for r in rows if r["status"] == "ok" and not r["matches"]]
+    for r in rows:
+        mark = "OK " if r["status"] == "ok" else r["status"].upper()[:5]
+        newest = (r.get("newest") or "")[:10]
+        detail = r["error"] or r["sample"][:70]
+        print(f"{mark:5s} {r['id']:22s} {r['kind']:6s} http={r['http'] or '-':<4} entries={r['entries']:<4} "
+              f"matches={r['matches']:<3} newest={newest or '-':10s} {detail}")
+    summary = f"{len(rows)} sources: {len(rows) - len(bad)} readable, {len(bad)} failing, {len(quiet)} readable with no matches"
+    print(summary)
+    path = os.environ.get("GITHUB_STEP_SUMMARY")
+    if path:
+        lines = ["### Sources", "", summary, "", "| Source | Kind | Status | Entries | Matches | Newest | Note |", "|---|---|---|---:|---:|---|---|"]
+        for r in rows:
+            note = (r["error"] or r["sample"] or "").replace("|", "/")[:90]
+            lines.append(f"| {r['id']} | {r['kind']} | {r['status']} | {r['entries']} | {r['matches']} | {(r.get('newest') or '')[:10]} | {note} |")
+        with open(path, "a", encoding="utf-8") as fh:
+            fh.write("\n".join(lines) + "\n")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="microhot", description="MicroHOT 微熱 news digest")
     parser.add_argument("--root", help="project folder (defaults to the current directory)")
@@ -38,6 +61,10 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("render", help="rebuild the site from saved data")
     sub.add_parser("status", help="show which providers and channels are configured (no calls)")
     sub.add_parser("eval", help="how well the thresholds match your 👍/👎 ratings")
+    p_src = sub.add_parser("sources", help="list sources; with --check, read each one now and report (no model calls, saves nothing)")
+    p_src.add_argument("--check", action="store_true", help="fetch every source and show what it would yield")
+    p_src.add_argument("--all", action="store_true", help="include paused sources")
+    p_src.add_argument("--only", default="", help="comma-separated source ids")
     args = parser.parse_args(argv)
 
     settings = load_settings(args.root)
@@ -79,6 +106,17 @@ def main(argv: list[str] | None = None) -> int:
     if args.cmd == "eval":
         lines = eval_lines(evaluate(settings, Store(settings.data_dir, settings.tz)))
         print("\n".join(lines))
+        return 0
+
+    if args.cmd == "sources":
+        only = [x.strip() for x in args.only.split(",") if x.strip()]
+        if not args.check:
+            for src in settings.sources:
+                if (src.enabled or args.all) and (not only or src.id in only):
+                    print(f"{src.id:22s} {src.beat:4s} {src.tier:4s} {src.kind:6s} {'on ' if src.enabled else 'off'} {src.url}")
+            return 0
+        rows = check_sources(settings, utcnow(), include_disabled=args.all, only=only)
+        _print_source_checks(rows)
         return 0
 
     if args.cmd == "status":

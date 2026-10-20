@@ -27,6 +27,13 @@ class Item:
     lang: str = "en"
     fp: str = ""
     event_id: str | None = None
+    publisher: str = ""  # the outlet behind an item from a news-search feed (empty for ordinary feeds)
+
+    @property
+    def origin(self) -> str:
+        """The independent source this report counts as: its publisher when it came through a
+        news-search feed (many outlets in one feed), otherwise the feed itself."""
+        return f"pub:{self.publisher.casefold()}" if self.publisher else self.source_id
 
     def when(self) -> datetime:
         """Best guess of when the item appeared: its published time unless that looks wrong."""

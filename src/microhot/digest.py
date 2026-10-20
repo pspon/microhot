@@ -14,6 +14,7 @@ from .llm import Router
 from .model import Event, Item
 from .prompts import load_prompt
 from .textutil import cjk_ratio, has_cjk, parse_iso, to_iso, truncate
+from .views import report_source
 from .zh import to_taiwan
 
 FIELDS = ("title_en", "digest_en", "title_zh", "digest_zh")
@@ -44,9 +45,9 @@ def _reports(event: Event, items: dict[str, Item], settings: Settings, limit: in
         item = items.get(item_id)
         if not item:
             continue
-        current = best.get(item.source_id)
+        current = best.get(item.origin)
         if current is None or len(item.snippet) > len(current.snippet):
-            best[item.source_id] = item
+            best[item.origin] = item
 
     def key(item: Item):
         src = settings.source(item.source_id)
@@ -60,9 +61,8 @@ def build_message(event: Event, items: dict[str, Item], settings: Settings) -> s
     reports = _reports(event, items, settings, int(cfg["reports"]))
     lines = [f"Reports on one story ({len(reports)}), official sources first:", ""]
     for i, item in enumerate(reports, 1):
-        src = settings.source(item.source_id)
         date = item.published[:10] if item.published else "unknown"
-        lines.append(f"[{i}] {src.name if src else item.source_id} | {date}")
+        lines.append(f"[{i}] {report_source(settings, item)} | {date}")
         lines.append(f"Title: {item.title}")
         if item.snippet:
             lines.append(f"Text: {truncate(item.snippet, int(cfg['report_chars']))}")

@@ -120,6 +120,9 @@ a:hover { text-decoration-color: currentColor; }
 .headline a:hover { text-decoration: underline; }
 :lang(zh-Hant-TW) .headline { line-height: 1.45; letter-spacing: 0.01em; }
 .summary { margin: 0.35rem 0 0; }
+.why { margin: 0.4rem 0 0; padding-left: 0.6rem; border-left: 2px solid var(--rule); font-size: 0.92rem; }
+.why-label { font-weight: 600; margin-right: 0.3em; }
+.lede + .why { margin-bottom: 1rem; }
 .pending { margin: 0.3rem 0 0; font-size: 0.85rem; color: var(--muted); font-style: italic; }
 .meta { margin: 0.4rem 0 0; font-size: 0.84rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: 0.1rem 0.9rem; }
 .meta a { color: var(--ink); }

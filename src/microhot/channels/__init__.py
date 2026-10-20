@@ -51,6 +51,13 @@ def story_lines(story: dict, langs: list[str]) -> tuple[list[str], list[str]]:
     return titles, summaries
 
 
+def why_lines(story: dict, langs: list[str]) -> list[str]:
+    """The "why it matters" note in each requested language that has one."""
+    why = story.get("why") or {}
+    out = [i18n.t(lang, "why_line", text=why[lang]) for lang in langs if why.get(lang)]
+    return list(dict.fromkeys(out))
+
+
 def missing_env(module, environ) -> list[str]:
     return [name for name in module.REQUIRED if not str(environ.get(name, "")).strip()]
 

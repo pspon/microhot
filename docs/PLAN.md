@@ -10,7 +10,7 @@ Agreed on 2026-10-19. This is the reference for what MicroHOT is and why it is b
 |---|---|
 | Name | MicroHOT 微熱: 微 = micro (small footprint), 微熱 = only slightly warm; still says HOT as a nod to AIHOT |
 | Relationship to AIHOT | A new private repo, not a GitHub fork (forks of public repos cannot be private). It ports AIHOT's editorial brain (rubric, writing rules, heat formula, rule-built edition) with credit in `NOTICE`, and replaces its server stack |
-| Beats | General AI news, plus AI governance and policy (Canada and Ontario first, then the EU, US, UK) |
+| Beats | General AI news; Canada & Ontario (public-sector AI, added 2026-10-20); AI governance and policy elsewhere (the EU, US, UK) |
 | Audience | Just the owner: a password-protected site, not public, not indexed |
 | Stack | Python, one scheduled GitHub Actions job, static HTML on Cloudflare Pages, state as JSON on a `data` branch. No server, no database, no Docker |
 | Languages | English by default at `/`, Traditional Chinese (Taiwan usage) at `/zh-tw/`, one language at a time with a toggle |
@@ -24,12 +24,14 @@ Agreed on 2026-10-19. This is the reference for what MicroHOT is and why it is b
 
 ```
 GitHub Actions, 3× a day
- → fetch RSS/Atom            rules, filters, mute, dedupe   0 tokens
+ → fetch feeds, searches,     rules, filters, mute, dedupe   0 tokens
+   watched pages
  → group into events          lexical similarity             0 tokens
  → heat, badges, boosts       rules                          0 tokens
  → triage, ~20 per call       five-axis rubric               LLM
  → select                     tier thresholds + quotas       0 tokens
- → write EN + 繁中, ~4/call    top stories only               LLM
+ → write EN + 繁中, ~4/call    top stories only; Canada &     LLM
+                              Ontario adds a why-it-matters line
  → overview, big stories      3+ sources, ≤2 a day           LLM
  → Taiwan guard               OpenCC s2twp                   0 tokens
  → morning edition            rule-built, with follow-ups    0 tokens
@@ -92,7 +94,29 @@ After comparing MicroHOT with aihot.news, these were added, each kept to rules o
 Left out on purpose: accounts, comments, an admin UI, a database, and personalised "why it matters to you"
 notes (an extra call per story).
 
+## Canada & Ontario beat (2026-10-20)
+
+Built from the daily public-sector AI watch (a scheduled Claude task, weekdays 7:45), so MicroHOT covers the same
+ground. The watch keeps running alongside for about two weeks; then it is retired or kept.
+
+| Watch | MicroHOT |
+|---|---|
+| Ontario public-sector AI and federal AI policy as two topics | A third beat, `ca`, with its own quota (5 a day), a lower threshold and a "why it matters" line |
+| Web searches per topic | Two GDELT news-search feeds across Canadian English-language outlets; Google Alerts feeds can be added (see `config/sources.toml`) |
+| news.ontario.ca, ipc.on.ca, canada.ca, pm.gc.ca, priv.gc.ca | Ontario Newsroom, GC news, the AI minister, ISED, TBS, Shared Services Canada, StatCan, OPC and LEGISinfo feeds; the IPC, PMO, Auditor General, OHRC, Ontario legislature and Ontario Health pages watched for new links |
+| The broader public sector | City of Toronto, Ontario Health, Canadian Healthcare Technology, Hospital News |
+| Legal and policy analysis (e.g. the Oct 2 Ontario backgrounder's sources) | Hicks Morley, Dentons Data, Teresa Scassa, Michael Geist, Policy Options, Canadian Government Executive, The Dais, The Logic |
+| "Why it matters for an OPS data science lead" | `why_en` and `why_zh` in the same write call, for `ca` stories only |
+
+Code changes, all rule-based except the note: beats come from `config/site.toml` (the triage schema follows
+them); per-beat thresholds; source kinds `search` (publisher per item, redirect links unwrapped, each outlet a
+separate source for heat and follow-ups) and `page` (link watching with a first-read baseline, an optional
+look at each new item's page for its description, and a guard against redesigns); `require` rules;
+`track_updates` (a bill's new stage is a new item); sources on one host read in turn; Telegram gives each beat
+a share; `microhot sources --check` and the **Check sources** workflow. Budget: about 3–5 more calls a day,
+inside the caps.
+
 ## Later
 
-- Sources without RSS (web pages, JSON APIs).
+- JSON API sources.
 - Optional small local embedding model (`model2vec`) for clustering, already wired in config.

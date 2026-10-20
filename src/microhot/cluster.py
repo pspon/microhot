@@ -224,9 +224,9 @@ def update_heat(events: dict[str, Event], items: dict[str, Item], settings: Sett
             if not item:
                 continue
             age = max(0.0, hours_between(now, item.when()))
-            first_age[item.source_id] = max(first_age.get(item.source_id, age), age)
+            first_age[item.origin] = max(first_age.get(item.origin, age), age)
             if age <= window:
-                latest[item.source_id] = min(latest.get(item.source_id, age), age)
+                latest[item.origin] = min(latest.get(item.origin, age), age)
         event.heat = round(sum(0.5 ** (age / half_life) for age in latest.values()), 3)
         event.sources_48h = len(latest)
         event.sources_6h = sum(1 for age in first_age.values() if age < RECENT_HOURS)

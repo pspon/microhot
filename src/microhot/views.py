@@ -35,6 +35,11 @@ def source_name(settings: Settings, source_id: str) -> str:
     return src.name if src else source_id
 
 
+def report_source(settings: Settings, item: Item) -> str:
+    """How a report's source is shown: the outlet for a news-search result, else the feed's name."""
+    return item.publisher or source_name(settings, item.source_id)
+
+
 def _comparable_prev(event: Event, now: datetime) -> float | None:
     prev_at = parse_iso(event.heat_prev_at)
     if event.heat_prev is None or not prev_at or hours_between(now, prev_at) > COMPARE_MAX_HOURS:
@@ -76,8 +81,8 @@ def _links(event: Event, items: dict[str, Item], settings: Settings) -> list[dic
             links.append(
                 {
                     "id": item.id,
-                    "source": source_name(settings, item.source_id),
-                    "official": bool(src and src.tier == "T1"),
+                    "source": report_source(settings, item),
+                    "official": bool(src and src.tier == "T1" and not item.publisher),
                     "title": item.title,
                     "url": item.url,
                     "when": to_iso(item.when()),
@@ -136,6 +141,7 @@ def story_view(
         "by": story.get("by"),
         "title": {"en": title_en, "zh-TW": digest.get("title_zh") or story.get("title_zh") or title_en},
         "summary": {"en": summary_en, "zh-TW": summary_zh},
+        "why": {"en": story["why_en"], "zh-TW": story.get("why_zh", "")} if story.get("why_en") else None,
         "digest": (
             {"en": digest.get("text_en", ""), "zh-TW": digest.get("text_zh", ""), "by": digest.get("by"), "at": digest.get("at")}
             if digest
@@ -145,6 +151,6 @@ def story_view(
         "editions": list(event.editions),
         "topics": [{"id": t.id, "en": t.name_en, "zh-TW": t.name_zh} for t in matched],
         "url": rep.url if rep else (links[0]["url"] if links else ""),
-        "source": source_name(settings, rep.source_id) if rep else "",
+        "source": report_source(settings, rep) if rep else "",
         "links": links,
     }
