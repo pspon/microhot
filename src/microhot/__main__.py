@@ -29,8 +29,17 @@ def _step_summary(lines: list[str]) -> None:
             fh.write("\n".join(f"- {line}" if i else f"### {line}" for i, line in enumerate(lines)) + "\n")
 
 
-def _print_source_checks(rows: list[dict]) -> None:
-    """A plain table for the terminal, and a Markdown table in the GitHub Actions summary."""
+def _source_checks_markdown(rows: list[dict], summary: str) -> str:
+    lines = ["### Sources", "", summary, "", "| Source | Kind | Status | Entries | Matches | Newest | Note |", "|---|---|---|---:|---:|---|---|"]
+    for r in rows:
+        note = (r["error"] or r["sample"] or "").replace("|", "/")[:90]
+        lines.append(f"| {r['id']} | {r['kind']} | {r['status']} | {r['entries']} | {r['matches']} | {(r.get('newest') or '')[:10]} | {note} |")
+    lines += ["", "Matches: entries in the last 14 days that pass the keyword rules (pages: links on the page now)."]
+    return "\n".join(lines) + "\n"
+
+
+def _print_source_checks(rows: list[dict], markdown_path: str = "") -> None:
+    """A plain table for the terminal, and a Markdown table in the GitHub Actions summary (and a file)."""
     bad = [r for r in rows if r["status"] != "ok"]
     quiet = [r for r in rows if r["status"] == "ok" and not r["matches"]]
     for r in rows:
@@ -41,14 +50,14 @@ def _print_source_checks(rows: list[dict]) -> None:
               f"matches={r['matches']:<3} newest={newest or '-':10s} {detail}")
     summary = f"{len(rows)} sources: {len(rows) - len(bad)} readable, {len(bad)} failing, {len(quiet)} readable with no matches"
     print(summary)
+    table = _source_checks_markdown(rows, summary)
     path = os.environ.get("GITHUB_STEP_SUMMARY")
     if path:
-        lines = ["### Sources", "", summary, "", "| Source | Kind | Status | Entries | Matches | Newest | Note |", "|---|---|---|---:|---:|---|---|"]
-        for r in rows:
-            note = (r["error"] or r["sample"] or "").replace("|", "/")[:90]
-            lines.append(f"| {r['id']} | {r['kind']} | {r['status']} | {r['entries']} | {r['matches']} | {(r.get('newest') or '')[:10]} | {note} |")
         with open(path, "a", encoding="utf-8") as fh:
-            fh.write("\n".join(lines) + "\n")
+            fh.write(table)
+    if markdown_path:
+        with open(markdown_path, "w", encoding="utf-8") as fh:
+            fh.write(table)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -65,6 +74,7 @@ def main(argv: list[str] | None = None) -> int:
     p_src.add_argument("--check", action="store_true", help="fetch every source and show what it would yield")
     p_src.add_argument("--all", action="store_true", help="include paused sources")
     p_src.add_argument("--only", default="", help="comma-separated source ids")
+    p_src.add_argument("--markdown", default="", help="also write the results as a Markdown table to this file")
     args = parser.parse_args(argv)
 
     settings = load_settings(args.root)
@@ -116,7 +126,7 @@ def main(argv: list[str] | None = None) -> int:
                     print(f"{src.id:22s} {src.beat:4s} {src.tier:4s} {src.kind:6s} {'on ' if src.enabled else 'off'} {src.url}")
             return 0
         rows = check_sources(settings, utcnow(), include_disabled=args.all, only=only)
-        _print_source_checks(rows)
+        _print_source_checks(rows, args.markdown)
         return 0
 
     if args.cmd == "status":
