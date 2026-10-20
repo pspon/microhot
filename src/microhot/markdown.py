@@ -1,4 +1,4 @@
-"""Markdown copies of editions and reviews (for the site, the data branch and the GitHub issue)."""
+"""Markdown copies of editions and reviews (for the site, the data repo and the GitHub issue)."""
 
 from __future__ import annotations
 

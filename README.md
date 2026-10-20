@@ -51,7 +51,8 @@ Details: [docs/PLAN.md](docs/PLAN.md).
 ## Set up
 
 See [docs/SETUP.md](docs/SETUP.md). In short: add one model key (a free Gemini key is enough), add the three
-Cloudflare secrets, then run **Actions → MicroHOT run**.
+Cloudflare secrets, create a private data repo with a `DATA_TOKEN` secret and `DATA_REPO` variable (the digest
+never lives in this public repo), then run **Actions → MicroHOT run**.
 
 ## Change what it does
 

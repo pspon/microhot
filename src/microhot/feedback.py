@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 
 import httpx
 
+from .channels.github_issue import issue_target
 from .config import TIER_RANK, Settings
 from .store import Store, read_jsonl
 from .textutil import to_iso, utcnow
@@ -65,11 +66,12 @@ def _snapshot(edition: dict, event_id: str, settings: Settings) -> dict | None:
 
 
 def collect_labels(settings: Settings, store: Store, environ, now: datetime | None = None, client: httpx.Client | None = None) -> dict:
-    """Read recent edition issues and update data/labels.jsonl. Needs GITHUB_TOKEN and GITHUB_REPOSITORY."""
+    """Read recent edition issues and update data/labels.jsonl. Reads the issues of DATA_REPO with DATA_TOKEN
+    (or GITHUB_REPOSITORY / GITHUB_TOKEN when those are not set)."""
     now = now or utcnow()
-    token, repo = environ.get("GITHUB_TOKEN", ""), environ.get("GITHUB_REPOSITORY", "")
+    repo, token = issue_target(environ)
     if not token or not repo:
-        return {"status": "skipped (no GITHUB_TOKEN / GITHUB_REPOSITORY)"}
+        return {"status": "skipped (no DATA_REPO / DATA_TOKEN or GITHUB_REPOSITORY / GITHUB_TOKEN)"}
     api = str(environ.get("GITHUB_API_URL") or "https://api.github.com").rstrip("/")
     label = settings.channels.get("github_issue", {}).get("label", "edition")
     since = to_iso(now - timedelta(days=LOOKBACK_DAYS))

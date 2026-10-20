@@ -22,10 +22,11 @@ on:
       - "uv.lock"
       - ".github/workflows/run.yml"
 
+# The digest (data, issues, ratings) lives in a separate PRIVATE repo, reached with the DATA_TOKEN secret, so
+# this repo's own token needs no write access at all.
 permissions:
   actions: read # the backup schedule checks for a recent run
-  contents: write # push the data branch
-  issues: write # the GitHub-app channel posts the edition as an issue
+  contents: read # check out the code
 
 concurrency:
   group: microhot-run
@@ -35,6 +36,9 @@ env:
   PAGES_PROJECT: microhot
   HAS_CLOUDFLARE: ${{ secrets.CLOUDFLARE_API_TOKEN != '' && secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
   SITE_URL: ${{ vars.SITE_URL || secrets.SITE_URL }}
+  # The private repo that holds the data and receives the issues (see docs/SETUP.md, step 3).
+  DATA_REPO: ${{ vars.DATA_REPO }}
+  DATA_BRANCH: ${{ vars.DATA_BRANCH || 'main' }}
 
 jobs:
   gate:
@@ -73,21 +77,79 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
+      # First, before anything touches data: fail closed unless the digest has a private home.
+      - name: Check the data repo is private
+        id: target
+        env:
+          CODE_TOKEN: ${{ github.token }}
+          DATA_TOKEN: ${{ secrets.DATA_TOKEN }}
+        run: |
+          fail() { echo "::error::$1 See docs/SETUP.md, step 3."; exit 1; }
+          repo="$(printf '%s' "$DATA_REPO" | tr -d '[:space:]')"
+          branch="$(printf '%s' "$DATA_BRANCH" | tr -d '[:space:]')"
+          branch="${branch:-main}"
+          DATA_TOKEN="$(printf '%s' "$DATA_TOKEN" | tr -d '[:space:]')"
+          # Keep the private repo's name out of the public logs.
+          [ -z "$repo" ] || echo "::add-mask::$repo"
+
+          # Is the code repo public? If this cannot be read, assume it is.
+          code_private=$(GH_TOKEN="$CODE_TOKEN" gh api "repos/$GITHUB_REPOSITORY" --jq .private 2>/dev/null) || code_private=false
+          [ "$code_private" = "true" ] || code_private=false
+          echo "code_private=$code_private" >> "$GITHUB_OUTPUT"
+
+          [ -n "$repo" ] || fail "The repository variable DATA_REPO is not set, so the digest has nowhere private to go."
+          [ -n "$DATA_TOKEN" ] || fail "The secret DATA_TOKEN is not set."
+          printf '%s' "$repo" | grep -Eq '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$' || fail "DATA_REPO must look like owner/name."
+          printf '%s' "$branch" | grep -Eq '^[A-Za-z0-9._/][A-Za-z0-9._/-]*$' || fail "DATA_BRANCH has characters that are not allowed, or starts with a dash."
+          if [ "${repo,,}" = "${GITHUB_REPOSITORY,,}" ]; then
+            [ "$code_private" = "true" ] || fail "DATA_REPO is this public repository. The digest must go to a separate private repo."
+            case "$branch" in main|master) fail "DATA_REPO is this repository, so DATA_BRANCH must be a separate branch, not $branch." ;; esac
+          fi
+          data_private=$(GH_TOKEN="$DATA_TOKEN" gh api "repos/$repo" --jq .private 2>/dev/null) \
+            || fail "Could not read the data repo with DATA_TOKEN. Check the repo name, that the token covers it (for an organisation repo, its resource owner is that organisation) and that it has not expired."
+          [ "$data_private" = "true" ] || fail "The data repo is not private. Make it private, or point DATA_REPO at a private repo."
+
+          echo "repo=$repo" >> "$GITHUB_OUTPUT"
+          echo "branch=$branch" >> "$GITHUB_OUTPUT"
+          echo "Data repo is private, branch $branch. Code repo private: $code_private."
+
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
 
-      - name: Check out the data branch
+      - name: Check out the data repo
+        id: data
+        env:
+          TARGET_BRANCH: ${{ steps.target.outputs.branch }}
+          DATA_TOKEN: ${{ secrets.DATA_TOKEN }}
         run: |
+          # The repo name is masked in the logs, so read it from the variable (already checked above) rather
+          # than from a step output, which GitHub may blank when it holds a masked value.
+          TARGET_REPO="$(printf '%s' "$DATA_REPO" | tr -d '[:space:]')"
+          # The token goes in a git header kept in data/.git/config, never in a URL or in the logs.
+          DATA_TOKEN="$(printf '%s' "$DATA_TOKEN" | tr -d '[:space:]')"
+          basic=$(printf 'x-access-token:%s' "$DATA_TOKEN" | base64 -w0)
+          echo "::add-mask::$basic"
+          git init -q -b "$TARGET_BRANCH" data
+          cd data
+          git remote add origin "https://github.com/$TARGET_REPO.git"
+          git config http.https://github.com/.extraheader "Authorization: Basic $basic"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          if git ls-remote --exit-code --heads origin data >/dev/null 2>&1; then
-            git fetch --depth=1 origin data
-            git worktree add -B data data FETCH_HEAD
+          rc=0
+          git ls-remote --exit-code --heads origin "$TARGET_BRANCH" >/dev/null 2>&1 || rc=$?
+          if [ "$rc" = 0 ]; then
+            git fetch -q --depth=1 origin "$TARGET_BRANCH"
+            git reset -q --hard FETCH_HEAD
+          elif [ "$rc" = 2 ]; then
+            echo "Branch $TARGET_BRANCH does not exist yet (or the repo is empty); starting it."
           else
-            git worktree add --orphan -b data data
+            echo "::error::Could not reach the data repo with DATA_TOKEN. See docs/SETUP.md, step 3."
+            exit 1
           fi
 
       - name: Fetch, score, write and render
@@ -121,8 +183,9 @@ jobs:
           fi
           npx --yes wrangler@4 pages deploy public --project-name="$PAGES_PROJECT" --branch=main --commit-dirty=true
 
-      - name: Keep the built site as a download (until Cloudflare is set up)
-        if: env.HAS_CLOUDFLARE != 'true'
+      # Artifacts of a public repo can be downloaded by anyone signed in to GitHub, and this one is the whole site.
+      - name: Keep the built site as a download (until Cloudflare is set up; private code repos only)
+        if: env.HAS_CLOUDFLARE != 'true' && steps.target.outputs.code_private == 'true'
         uses: actions/upload-artifact@v7
         with:
           name: microhot-site
@@ -133,7 +196,9 @@ jobs:
         # Still send when only publishing failed; never after a failed pipeline run.
         if: ${{ !cancelled() && steps.pipeline.outcome == 'success' }}
         env:
-          GITHUB_TOKEN: ${{ github.token }}
+          # GitHub does not let a step override GITHUB_REPOSITORY, so the private repo has its own names.
+          # DATA_REPO comes from the workflow env (checked in the first step); Python trims it.
+          DATA_TOKEN: ${{ secrets.DATA_TOKEN }}
           SMTP_HOST: ${{ secrets.SMTP_HOST }}
           SMTP_PORT: ${{ secrets.SMTP_PORT }}
           SMTP_USER: ${{ secrets.SMTP_USER }}
@@ -145,8 +210,11 @@ jobs:
         run: uv run --frozen microhot deliver
 
       - name: Save data
-        if: always()
+        # Only when the data repo was checked out, so a failed privacy check never gets this far.
+        if: always() && steps.data.outcome == 'success'
         working-directory: data
+        env:
+          TARGET_BRANCH: ${{ steps.target.outputs.branch }}
         run: |
           git add -A
           if git diff --cached --quiet; then
@@ -154,4 +222,4 @@ jobs:
             exit 0
           fi
           git commit -q -m "data: run $(date -u +%Y-%m-%dT%H:%MZ)"
-          git push -q origin HEAD:data
+          git push -q origin "HEAD:refs/heads/$TARGET_BRANCH"

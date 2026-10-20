@@ -243,7 +243,7 @@ extra = { thinking = { type = "disabled" } }
 # A channel runs only when enabled here AND its secrets are set.
 
 [channels.github_issue]
-# Posts the morning edition as an issue in this repo (push notification in the GitHub app).
+# Posts the morning edition as an issue in the private data repo (DATA_REPO; push notification in the GitHub app).
 enabled = true
 lang = "en"            # "en", "zh-TW" or "both"
 close_previous = true

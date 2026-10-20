@@ -146,7 +146,7 @@ def run(
     try:
         report["site"] = SiteBuilder(settings, store, events, items, now, run_summary=report, topics=topics).build()
     except Exception as exc:  # keep the data even if rendering breaks
-        report["errors"].append(f"render: {type(exc).__name__}: {exc}")
+        report["errors"].append(f"render: {type(exc).__name__} (details in the private data repo)")
         report["site"] = {"error": str(exc)}
     report["seconds"] = round(time.monotonic() - clock, 1)
     store.update_latest_run(report)

@@ -12,7 +12,7 @@ Agreed on 2026-10-19. This is the reference for what MicroHOT is and why it is b
 | Relationship to AIHOT | A new private repo, not a GitHub fork (forks of public repos cannot be private). It ports AIHOT's editorial brain (rubric, writing rules, heat formula, rule-built edition) with credit in `NOTICE`, and replaces its server stack |
 | Beats | General AI news; Canada & Ontario (public-sector AI, added 2026-10-20); AI governance and policy elsewhere (the EU, US, UK) |
 | Audience | Just the owner: a password-protected site, not public, not indexed |
-| Stack | Python, one scheduled GitHub Actions job, static HTML on Cloudflare Pages, state as JSON on a `data` branch. No server, no database, no Docker |
+| Stack | Python, one scheduled GitHub Actions job, static HTML on Cloudflare Pages, state as JSON in a separate private data repo. No server, no database, no Docker |
 | Languages | English by default at `/`, Traditional Chinese (Taiwan usage) at `/zh-tw/`, one language at a time with a toggle |
 | Cadence | 3 runs a day, about 6:25, 12:25, 18:25 Toronto time, started by a Cloudflare cron Worker with GitHub's schedule as a backup; the first run after 06:00 builds the morning edition |
 | Delivery | The private web page is the source of truth. Optional channels link back to it: GitHub issue (on by default), email, Telegram. Each runs only when enabled and configured |
@@ -39,7 +39,7 @@ GitHub Actions, 3× a day
  → alerts                     rules                          0 tokens
  → render static site → Cloudflare Pages (password)
  → deliver: read ratings, send edition/review/alerts to channels
- → commit state to the data branch
+ → commit state to the private data repo
 ```
 
 ## Token budget
