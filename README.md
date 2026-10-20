@@ -52,7 +52,7 @@ Cloudflare secrets, then run **Actions → MicroHOT run**.
 | What counts as important, and for whom | `prompts/triage.md` |
 | How stories are written in English and 繁中 | `prompts/write.md` |
 | Overviews for big stories, and the review overviews | `prompts/digest.md`, `prompts/review.md` |
-| Run times | `.github/workflows/run.yml` |
+| Run times | `scheduler/wrangler.toml` (on-time runs) and `.github/workflows/run.yml` (backup schedule) |
 
 ## Commands
 

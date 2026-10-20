@@ -46,6 +46,23 @@ Until Cloudflare is set up, each run attaches the built site to the run as a dow
 **Actions → MicroHOT run → Run workflow**. After that it runs at about 6:25, 12:25 and 18:25 Toronto time.
 The first run at or after 06:00 builds the morning edition.
 
+### On-time runs (Cloudflare scheduler)
+
+GitHub's own schedule is best-effort: runs can start hours late or be skipped. A small Cloudflare Worker in
+`scheduler/` starts the workflow on time instead, and the GitHub schedule stays as a backup that stands down
+whenever another run started in the last 3 hours. It is free and makes one call per run. To set it up:
+
+1. **Let the Cloudflare token deploy Workers.** In Cloudflare, **My Profile → API Tokens**, edit the token in
+   `CLOUDFLARE_API_TOKEN` and add the permission *Account → Workers Scripts → Edit*.
+2. **Create a GitHub token for the Worker.** **GitHub → Settings → Developer settings → Fine-grained tokens →
+   Generate new token**: repository access *Only select repositories* → this repository; permission
+   *Actions → Read and write*. Add it as the repository secret `DISPATCH_TOKEN`.
+3. **Deploy.** **Actions → Scheduler deploy → Run workflow** (it also runs when `scheduler/` changes).
+
+When the GitHub token expires, scheduled runs fall back to GitHub's late schedule until you create a new one,
+update `DISPATCH_TOKEN` and run **Scheduler deploy** again. The Worker's logs are under **Workers & Pages →
+microhot-scheduler → Logs** in Cloudflare.
+
 Open the site, sign in with any username and `SITE_PASSWORD`, and add it to your home screen.
 Private RSS feeds (listed on the About page) are at `/feed.xml` for all picks, `/feed/ai.xml` and
 `/feed/gov.xml` per beat, and `/feed/editions.xml` for the editions and reviews; add `/zh-tw` in front for

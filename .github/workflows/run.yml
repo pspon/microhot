@@ -1,7 +1,11 @@
 name: MicroHOT run
 
-# Three runs a day in Toronto time (GitHub may start scheduled runs a few minutes late).
-# The first run at or after 06:00 builds the morning edition and sends it to your channels.
+# Three runs a day, about 6:25, 12:25 and 18:25 Toronto time. The first run at or after 06:00 builds the
+# morning edition and sends it to your channels.
+#
+# The on-time runs are started by the Cloudflare Worker in scheduler/ (workflow_dispatch), because GitHub's
+# own cron can start hours late or not at all. The schedule below is a backup: a scheduled run stands down
+# when another run started in the last 3 hours, so it only does the work when the Worker's run is missing.
 on:
   schedule:
     - cron: "25 6,12,18 * * *"
@@ -19,6 +23,7 @@ on:
       - ".github/workflows/run.yml"
 
 permissions:
+  actions: read # the backup schedule checks for a recent run
   contents: write # push the data branch
   issues: write # the GitHub-app channel posts the edition as an issue
 
@@ -32,7 +37,39 @@ env:
   SITE_URL: ${{ vars.SITE_URL || secrets.SITE_URL }}
 
 jobs:
+  gate:
+    # Only scheduled runs are checked; manual, Worker and push runs always go ahead.
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      go: ${{ steps.check.outputs.go }}
+    steps:
+      - id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          if [ "$EVENT" != "schedule" ]; then
+            echo "go=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          since=$(date -u -d '3 hours ago' +%Y-%m-%dT%H:%M:%SZ)
+          recent=$(gh api -X GET "repos/$GITHUB_REPOSITORY/actions/workflows/run.yml/runs" \
+            -f created=">=$since" -f per_page=30 \
+            --jq "[.workflow_runs[] | select(.id != $RUN_ID)
+                   | select(.status != \"completed\" or .conclusion == \"success\")] | length") || recent=0
+          if [ "${recent:-0}" -gt 0 ]; then
+            echo "Another run started since $since, so this backup run stands down."
+            echo "go=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "No run since $since, so this backup run does the work."
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          fi
+
   run:
+    needs: gate
+    if: needs.gate.outputs.go == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
