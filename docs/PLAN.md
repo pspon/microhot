@@ -14,7 +14,7 @@ Agreed on 2026-10-19. This is the reference for what MicroHOT is and why it is b
 | Audience | Just the owner: a password-protected site, not public, not indexed |
 | Stack | Python, one scheduled GitHub Actions job, static HTML on Cloudflare Pages, state as JSON on a `data` branch. No server, no database, no Docker |
 | Languages | English by default at `/`, Traditional Chinese (Taiwan usage) at `/zh-tw/`, one language at a time with a toggle |
-| Cadence | 3 runs a day, about 6:25, 12:25, 18:25 Toronto time; the first run after 06:00 builds the morning edition |
+| Cadence | 3 runs a day, about 6:25, 12:25, 18:25 Toronto time, started by a Cloudflare cron Worker with GitHub's schedule as a backup; the first run after 06:00 builds the morning edition |
 | Delivery | The private web page is the source of truth. Optional channels link back to it: GitHub issue (on by default), email, Telegram. Each runs only when enabled and configured |
 | Models | Fallback chain, free first: Gemini Flash-Lite (free tier) → Groq → OpenRouter free models → Mistral free mode → Cloudflare Workers AI → Claude Haiku 5.5 → DeepSeek → any OpenAI-compatible endpoint. Order is set per step in config |
 | Unconfigured providers | Never called, never counted as failures. A provider is active only when its key (and any `${VAR}` in its URL) is set |

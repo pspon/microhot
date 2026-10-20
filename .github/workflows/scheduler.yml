@@ -1,0 +1,50 @@
+name: Scheduler deploy
+
+# Deploys the Cloudflare Worker in scheduler/ that starts "MicroHOT run" on time.
+# Needs CLOUDFLARE_API_TOKEN (with Workers Scripts: Edit), CLOUDFLARE_ACCOUNT_ID and DISPATCH_TOKEN.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "scheduler/**"
+      - ".github/workflows/scheduler.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: microhot-scheduler
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check secrets
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          DISPATCH_TOKEN: ${{ secrets.DISPATCH_TOKEN }}
+        run: |
+          missing=""
+          for name in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID DISPATCH_TOKEN; do
+            [ -n "${!name}" ] || missing="$missing $name"
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::Missing secrets:$missing. See docs/SETUP.md, step 3."
+            exit 1
+          fi
+
+      - name: Deploy the Worker and its token
+        working-directory: scheduler
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          DISPATCH_TOKEN: ${{ secrets.DISPATCH_TOKEN }}
+        run: |
+          npx --yes wrangler@4 deploy --var "REPO:$GITHUB_REPOSITORY"
+          printf '%s' "$DISPATCH_TOKEN" | npx --yes wrangler@4 secret put DISPATCH_TOKEN
