@@ -64,8 +64,8 @@ update `DISPATCH_TOKEN` and run **Scheduler deploy** again. The Worker's logs ar
 microhot-scheduler → Logs** in Cloudflare.
 
 Open the site, sign in with any username and `SITE_PASSWORD`, and add it to your home screen.
-Private RSS feeds (listed on the About page) are at `/feed.xml` for all picks, `/feed/ai.xml` and
-`/feed/gov.xml` per beat, and `/feed/editions.xml` for the editions and reviews; add `/zh-tw` in front for
+Private RSS feeds (listed on the About page) are at `/feed.xml` for all picks, `/feed/ai.xml`, `/feed/ca.xml`
+and `/feed/gov.xml` per beat, and `/feed/editions.xml` for the editions and reviews; add `/zh-tw` in front for
 Traditional Chinese. Readers that support basic auth accept `https://any:PASSWORD@your-site/feed.xml`.
 
 ## 4. Delivery channels (optional)
@@ -105,7 +105,15 @@ change on their own: move them in `config/site.toml` when the suggestion looks r
 
 ## 6. Tuning
 
-- **What it covers**: `config/sources.toml` (feeds, beat, tier, keyword filters).
+- **What it covers**: `config/sources.toml` (feeds, news-search feeds and watched pages; beat, tier, keyword
+  filters). After changing it, run **Actions → Check sources → Run workflow** (it also runs on pull requests
+  that touch the file): it reads every source from GitHub's servers and lists, per source, the HTTP status,
+  entries, how many pass the keyword rules in the last 14 days, and a sample headline. Locally:
+  `uv run microhot sources --check`.
+- **Beats**: `[beats.*]` in `config/site.toml`. Each beat is a section with its own daily quota; a beat can set
+  its own `thresholds` (the Canada & Ontario beat has a lower bar than the others) and `why = true` for a
+  one-line "why it matters" note on each story. The note's angle is set in the "Why it matters" section of
+  `prompts/write.md`.
 - **What gets picked**: thresholds, second opinions and daily quotas per beat in `config/site.toml`; the reader
   description and rubric in `prompts/triage.md`. The About page's "Near misses" table shows what just missed.
 - **Your own nudges**: `[adjust]` in `config/site.toml`. `boost` adds points when a story matches a topic or a

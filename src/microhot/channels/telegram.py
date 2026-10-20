@@ -14,13 +14,29 @@ LIMIT = 3800  # Telegram allows 4096 characters per message
 
 
 def _story_block(story: dict, langs: list[str]) -> str:
-    from . import story_lines
+    from . import story_lines, why_lines
 
     titles, summaries = story_lines(story, langs)
     parts = [f"{story['temp']:.1f}° <a href=\"{escape(story['url'], quote=True)}\">{escape(titles[0])}</a>"]
     parts += [escape(t) for t in titles[1:]]
     parts += [escape(s) for s in summaries]
+    parts += [f"<i>{escape(line)}</i>" for line in why_lines(story, langs)]
     return "\n".join(parts)
+
+
+def fair_share(stories: list[dict], beat_order: list[str], limit: int) -> list[dict]:
+    """Up to `limit` stories, taken from each beat in turn (warmest first), then listed by beat."""
+    order = {beat: i for i, beat in enumerate(beat_order)}
+    queues: dict[str, list[dict]] = {}
+    for story in sorted(stories, key=lambda s: -s["heat"]):
+        queues.setdefault(story["beat"], []).append(story)
+    beats = sorted(queues, key=lambda b: order.get(b, 99))
+    chosen: list[dict] = []
+    while len(chosen) < limit and any(queues.values()):
+        for beat in beats:
+            if queues[beat] and len(chosen) < limit:
+                chosen.append(queues[beat].pop(0))
+    return sorted(chosen, key=lambda s: (order.get(s["beat"], 99), -s["heat"]))
 
 
 def _chunks(head: str, blocks: list[str]) -> list[str]:
@@ -41,8 +57,7 @@ def messages(edition: dict, settings: Settings, langs: list[str], max_stories: i
 
     lead = langs[0]
     head = f"<b>{escape(edition_title(settings, edition, lead))}</b>"
-    order = {beat: i for i, beat in enumerate(settings.beat_order)}
-    stories = sorted(edition["stories"], key=lambda s: (order.get(s["beat"], 99), -s["heat"]))[:max_stories]
+    stories = fair_share(edition["stories"], settings.beat_order, max_stories)
     blocks = [_story_block(s, langs) for s in stories]
     if edition.get("followups"):
         blocks.append(f"<b>{escape(i18n.t(lead, 'followups'))}</b>")

@@ -157,7 +157,7 @@ def summary_lines(report: dict) -> list[str]:
     counts = report.get("counts", {})
     llm = report.get("llm", {})
     fetch = report.get("fetch", [])
-    ok_feeds = sum(1 for f in fetch if f["status"] in ("ok", "not_modified"))
+    ok_feeds = sum(1 for f in fetch if f["status"] in ("ok", "not_modified", "baseline"))
     active = llm.get("active", {})
     lines = [
         f"MicroHOT run {report.get('started')} ({report.get('seconds', '?')} s)",

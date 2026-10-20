@@ -43,7 +43,7 @@ def _snapshot(edition: dict, event_id: str, settings: Settings) -> dict | None:
             score = story.get("effective_score") or story.get("score")
             return {
                 "score": score,
-                "threshold": settings.threshold_for(story.get("tier", "T2")),
+                "threshold": settings.threshold_for(story.get("tier", "T2"), story.get("beat")),
                 "tier": story.get("tier"),
                 "beat": story.get("beat"),
                 "type": story.get("type"),
@@ -138,7 +138,8 @@ def evaluate(settings: Settings, store: Store) -> dict:
         out["by_type"][kind] = {"rated": len(group), "useful": sum(r["label"] for r in group)}
     min_labels = int(settings.raw["feedback"].get("min_labels", 10))
     for tier in TIER_RANK:
-        group = [r for r in rows if r.get("tier") == tier]
+        # Suggestions are for the shared [selection] thresholds, so leave out beats that set their own.
+        group = [r for r in rows if r.get("tier") == tier and tier not in settings.beats.get(r.get("beat"), {}).get("thresholds", {})]
         current = settings.threshold_for(tier)
         if len(group) < min_labels:
             out["suggestions"][tier] = {"labels": len(group), "current": current, "suggested": None}

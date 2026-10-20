@@ -25,6 +25,7 @@ _HTML = """<!doctype html>
 <p style="margin:0;font-size:16px;font-weight:650"><span style="color:{{ s.color }};font-variant-numeric:tabular-nums">{{ s.temp }}°</span>&nbsp; <a href="{{ s.url }}" style="color:#17212c;text-decoration:none">{{ s.titles[0] }}</a></p>
 {% for extra in s.titles[1:] %}<p style="margin:2px 0 0;font-size:15px">{{ extra }}</p>{% endfor %}
 {% for summary in s.summaries %}<p style="margin:4px 0 0">{{ summary }}</p>{% endfor %}
+{% for line in s.why %}<p style="margin:6px 0 0;padding-left:8px;border-left:2px solid #d5dcdf;font-size:14px">{{ line }}</p>{% endfor %}
 <p style="margin:4px 0 0;font-size:13px;color:#586572">{{ s.source }}, <a href="{{ s.details }}" style="color:#586572">{{ details }}</a></p>
 </div>
 {% endfor %}
@@ -35,10 +36,11 @@ _COLORS = {"cool": "#3c6a99", "warm": "#8f5c00", "hot": "#b8372b"}
 
 
 def _row(story: dict, settings: Settings, langs: list[str]) -> dict:
-    from . import story_lines
+    from . import story_lines, why_lines
 
     titles, summaries = story_lines(story, langs)
     return {
+        "why": why_lines(story, langs),
         "temp": f"{story['temp']:.1f}",
         "color": _COLORS.get(story.get("temp_class", "cool"), "#3c6a99"),
         "titles": titles,
@@ -71,7 +73,7 @@ def _render(title: str, url: str, intro: list[str], groups: list[dict], lead: st
         text_lines += [g["label"], ""]
         for s in g["stories"]:
             text_lines.append(f"{s['temp']}°  {s['titles'][0]}")
-            text_lines += s["titles"][1:] + s["summaries"]
+            text_lines += s["titles"][1:] + s["summaries"] + s["why"]
             text_lines += [s["url"], ""]
     return "\n".join(text_lines), html
 

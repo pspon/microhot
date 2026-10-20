@@ -1,10 +1,19 @@
 # MicroHOT sources.
-#   beat:  "ai" or "gov" (the triage step can move a story to the other beat)
+#   beat:  "ai", "ca" (Canada & Ontario) or "gov", as defined in config/site.toml [beats.*]
+#          (the triage step can move a story to another beat)
 #   tier:  "T1" official / primary (labs, governments, regulators, standards bodies)
 #          "T1.5" semi-official, "T2" media, newsletters, analysis, individuals
-#   include / exclude: optional regex lists, matched case-insensitively against title + text.
-#          Rules run before any model call, so filtering broad feeds here costs nothing.
-# Set enabled = false to pause a source. Feed status shows on the site's About page.
+#   kind:  "feed" (RSS/Atom, the default), "search" (a news-search feed: items from many outlets,
+#          each outlet counted as its own source) or "page" (a web page without a feed, see below)
+#   include / exclude / require: optional regex lists, matched case-insensitively against title + text.
+#          An item needs one `include` match (if any are listed), every `require` match and no
+#          `exclude` match. Rules run before any model call, so filtering broad feeds here costs nothing.
+#   Page sources: `link_pattern` picks the news links on the page (a regex on each link's full URL).
+#          The first read only records the links already there; after that, new links are new items.
+#          fetch_text = true opens each new item's page for its description (plain requests, 0 tokens).
+#   pause_s: wait this long before reading a source after another one on the same host.
+# Set enabled = false to pause a source. Feed status shows on the site's About page, and
+# `uv run microhot sources --check` reads every source now and reports what it would yield.
 
 # ---- AI: official / first-hand (from AIHOT's demo list) ---------------------------------
 
@@ -147,42 +156,464 @@ beat = "ai"
 tier = "T2"
 include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'generative', '\bLLMs?\b', 'chatbot']
 
-# ---- Governance: Canada -----------------------------------------------------------------
+[[source]]
+id = "global-news-tech"
+name = "Global News · Tech (AI only)"
+url = "https://globalnews.ca/tech/feed/"
+homepage = "https://globalnews.ca/tech/"
+beat = "ai"
+tier = "T2"
+include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'generative', '\bLLMs?\b', 'chatbot']
+
+[[source]]
+id = "globe-tech"
+name = "The Globe and Mail · Technology (AI only)"
+url = "https://www.theglobeandmail.com/arc/outboundfeeds/rss/category/business/technology/"
+homepage = "https://www.theglobeandmail.com/business/technology/"
+beat = "ai"
+tier = "T2"
+include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'generative', '\bLLMs?\b', 'chatbot']
+
+# ---- Canada & Ontario: federal, official -------------------------------------------------
 
 [[source]]
 id = "gc-news"
 name = "Government of Canada news (AI only)"
 url = "https://api.io.canada.ca/io-server/gc/news/en/v2?sort=publishedDate&orderBy=desc&publishedDate%3E=2021-07-23&pick=100&format=atom&atomtitle=Canada%20news"
 homepage = "https://www.canada.ca/en/news.html"
-beat = "gov"
+beat = "ca"
 tier = "T1"
-include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'generative', 'algorithm', 'automated decision', 'AI Safety Institute', 'sovereign compute']
+include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'generative', 'algorithm', 'automated decision', 'AI Safety Institute', 'sovereign (compute|cloud|technology)', 'data cent(re|er)']
+
+[[source]]
+id = "ai-minister"
+name = "Minister of Artificial Intelligence and Digital Innovation"
+# Everything the AI minister's office publishes on canada.ca, so no keyword filter.
+url = "https://api.io.canada.ca/io-server/gc/news/en/v2?minister=honevansolomon&sort=publishedDate&orderBy=desc&publishedDate%3E=2021-07-23&pick=50&format=atom&atomtitle=Evan%20Solomon"
+homepage = "https://www.canada.ca/en/news.html"
+beat = "ca"
+tier = "T1"
 
 [[source]]
 id = "ised"
 name = "Innovation, Science and Economic Development Canada (AI only)"
 url = "https://api.io.canada.ca/io-server/gc/news/en/v2?dept=departmentofindustry&sort=publishedDate&orderBy=desc&publishedDate%3E=2021-07-23&pick=50&format=atom&atomtitle=Innovation,%20Science%20and%20Economic%20Development%20Canada"
 homepage = "https://ised-isde.canada.ca/site/media-room/en"
-beat = "gov"
+beat = "ca"
 tier = "T1"
 include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'generative', 'algorithm', 'compute', 'digital']
+
+[[source]]
+id = "tbs"
+name = "Treasury Board of Canada Secretariat (AI and digital only)"
+# The Directive on Automated Decision-Making, the AI strategy and AI register for the federal public service.
+url = "https://api.io.canada.ca/io-server/gc/news/en/v2?dept=treasuryboardsecretariat&sort=publishedDate&orderBy=desc&publishedDate%3E=2021-07-23&pick=50&format=atom&atomtitle=Treasury%20Board%20of%20Canada%20Secretariat"
+homepage = "https://www.canada.ca/en/treasury-board-secretariat.html"
+beat = "ca"
+tier = "T1"
+include = ['artificial intelligence', '\bA\.?I\b', 'generative', 'algorithm', 'automated decision', 'digital', '\bdata\b', 'Chief Information Officer', 'cyber']
+
+[[source]]
+id = "ssc"
+name = "Shared Services Canada (AI, cloud and digital only)"
+url = "https://api.io.canada.ca/io-server/gc/news/en/v2?dept=sharedservices&sort=publishedDate&orderBy=desc&publishedDate%3E=2021-07-23&pick=50&format=atom&atomtitle=Shared%20Services%20Canada"
+homepage = "https://www.canada.ca/en/shared-services.html"
+beat = "ca"
+tier = "T1"
+include = ['artificial intelligence', '\bA\.?I\b', 'generative', 'cloud', 'digital', 'data cent(re|er)', 'sovereign', 'cyber', 'supercomput']
+
+[[source]]
+id = "pmo"
+name = "Prime Minister's Office news releases (AI and digital only)"
+# pm.gc.ca has no feed, so the news-release list is watched for new links (dates come from the URLs).
+kind = "page"
+url = "https://www.pm.gc.ca/en/news_view/1"
+homepage = "https://www.pm.gc.ca/en/news/news-releases"
+link_pattern = '/en/news/news-releases/\d{4}/\d{2}/\d{2}/'
+fetch_text = true
+beat = "ca"
+tier = "T1"
+include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'generative', 'digital', 'data cent(re|er)', 'sovereign (compute|cloud|technology)', 'compute']
 
 [[source]]
 id = "opc"
 name = "Office of the Privacy Commissioner of Canada"
 url = "https://www.priv.gc.ca/en/rss/news/"
 homepage = "https://www.priv.gc.ca/en/opc-news/"
-beat = "gov"
+beat = "ca"
 tier = "T1"
+
+[[source]]
+id = "legisinfo"
+name = "Parliament of Canada bills (LEGISinfo; AI, privacy and digital only)"
+# One entry per bill, dated by its latest stage; track_updates makes each new stage a new report.
+url = "https://www.parl.ca/legisinfo/en/bills/rss"
+homepage = "https://www.parl.ca/legisinfo/en/bills"
+track_updates = true
+beat = "ca"
+tier = "T1"
+include = ['artificial intelligence', 'privacy', 'personal information', '\bdata\b', 'cyber', 'digital', 'online', 'algorithm', 'automated', 'technolog', 'telecommunication', 'surveillance', 'lawful access']
+
+# ---- Canada & Ontario: Ontario, official -------------------------------------------------
 
 [[source]]
 id = "ontario-news"
 name = "Ontario Newsroom (AI only)"
 url = "https://news.ontario.ca/newsroom/en/rss/allnews.rss"
 homepage = "https://news.ontario.ca/en"
-beat = "gov"
+beat = "ca"
 tier = "T1"
-include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'generative', 'algorithm', 'cyber', 'digital']
+include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'generative', 'algorithm', 'automated', 'chatbot', 'Copilot', 'cyber', 'digital', 'privacy']
+
+[[source]]
+id = "ipc-on"
+name = "Information and Privacy Commissioner of Ontario"
+# No feed; the news-release list is watched for new links. Every release is about privacy or access,
+# so there is no keyword filter (the model drops the ones without an AI or data angle).
+# Paused: ipc.on.ca refuses GitHub's servers (HTTP 403, also for /rss.xml). IPC news reaches MicroHOT
+# through the "IPC in the news" search below and the legal analysts. Check sources shows when it opens up.
+enabled = false
+kind = "page"
+url = "https://www.ipc.on.ca/en/media-centre/news-releases"
+link_pattern = '/en/media-centre/news-releases/[a-z0-9-]+/?$'
+fetch_text = true
+beat = "ca"
+tier = "T1"
+
+[[source]]
+id = "auditor-on"
+name = "Auditor General of Ontario (technology and data reports only)"
+# Paused: auditor.on.ca often times out from GitHub's servers (2 of 3 checks), which would raise
+# failing-feed alerts. "News search: Ontario's Auditor General on technology" stands in for it.
+enabled = false
+kind = "page"
+url = "https://www.auditor.on.ca/"
+link_pattern = '/en/content/(specialreports|annualreports)/.+\.html$'
+fetch_text = true
+beat = "ca"
+tier = "T1"
+include = ['artificial intelligence', '\bA\.?I\b', 'information technology', 'cyber', 'digital', '\bdata\b', 'technolog', 'moderniz', 'automat', 'algorithm']
+
+[[source]]
+id = "ohrc"
+name = "Ontario Human Rights Commission (AI and technology only)"
+kind = "page"
+url = "https://www.ohrc.on.ca/en/news-centre"
+link_pattern = '/en/news-cent(er|re)/[a-z0-9-]+/?$'
+fetch_text = true
+beat = "ca"
+tier = "T1"
+include = ['artificial intelligence', '\bA\.?I\b', 'algorithm', 'automated', 'technolog', 'digital', '\bdata\b', 'surveillance', 'facial recognition', 'biometric']
+
+[[source]]
+id = "ola-bills"
+name = "Legislative Assembly of Ontario bills (AI, privacy and digital only)"
+# New bills appear on the current-session list; the bill number and title are the headline.
+kind = "page"
+url = "https://www.ola.org/en/legislative-business/bills/current"
+link_pattern = '/en/legislative-business/bills/parliament-\d+/session-\d+/bill-\d+[a-z]?/?$'
+beat = "ca"
+tier = "T1"
+include = ['artificial intelligence', 'privacy', 'information', '\bdata\b', 'cyber', 'digital', 'online', 'technolog', 'social media', 'algorithm', 'automated', 'security and trust']
+
+# ---- Canada & Ontario: broader public sector --------------------------------------------
+
+[[source]]
+id = "ontario-health"
+name = "Ontario Health (AI and digital health only)"
+kind = "page"
+url = "https://www.ontariohealth.ca/news"
+link_pattern = '/news/[a-z0-9-]+\.html$'
+fetch_text = true
+beat = "ca"
+tier = "T1"
+include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'scribe', 'digital health', 'virtual care', '\bdata\b', 'technolog']
+
+[[source]]
+id = "toronto"
+name = "City of Toronto news (AI only)"
+url = "https://www.toronto.ca/news/feed/"
+homepage = "https://www.toronto.ca/news/"
+beat = "ca"
+tier = "T1"
+include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'generative', 'algorithm', 'automated', 'chatbot']
+
+[[source]]
+id = "canhealth"
+name = "Canadian Healthcare Technology (AI only)"
+url = "https://www.canhealth.com/feed/"
+homepage = "https://www.canhealth.com/"
+beat = "ca"
+tier = "T2"
+include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'generative', '\bLLMs?\b', 'chatbot', 'scribe', 'algorithm']
+
+[[source]]
+id = "hospital-news"
+name = "Hospital News (AI only)"
+url = "https://hospitalnews.com/feed/"
+homepage = "https://hospitalnews.com/"
+beat = "ca"
+tier = "T2"
+include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'generative', 'chatbot', 'scribe', 'algorithm']
+
+# ---- Canada & Ontario: legal and policy analysis ----------------------------------------
+
+[[source]]
+id = "policy-options"
+name = "Policy Options (IRPP, AI only)"
+# Paused: the feed (also /rss/) stopped updating in June 2023, though the magazine still publishes.
+url = "https://policyoptions.irpp.org/feed/"
+enabled = false
+beat = "ca"
+tier = "T2"
+include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'algorithm', 'automated']
+
+[[source]]
+id = "teresa-scassa"
+name = "Teresa Scassa (AI and data law, uOttawa)"
+url = "https://www.teresascassa.ca/index.php?format=feed"
+homepage = "https://www.teresascassa.ca/"
+beat = "ca"
+tier = "T2"
+
+[[source]]
+id = "michael-geist"
+name = "Michael Geist (digital policy, uOttawa)"
+url = "https://www.michaelgeist.ca/feed/"
+homepage = "https://www.michaelgeist.ca/"
+beat = "ca"
+tier = "T2"
+include = ['artificial intelligence', '\bA\.?I\b', 'algorithm', 'privacy', '\bdata\b', 'digital', 'online', 'surveillance', 'lawful access', 'platforms?\b']
+
+[[source]]
+id = "hicks-morley"
+name = "Hicks Morley (Ontario public-sector law: AI, privacy and access only)"
+url = "https://hicksmorley.com/feed/"
+homepage = "https://hicksmorley.com/"
+beat = "ca"
+tier = "T2"
+include = ['artificial intelligence', '\bA\.?I\b', 'algorithm', 'automated', 'privacy', 'personal (health )?information', 'FIPPA', 'MFIPPA', 'PHIPA', 'freedom of information', 'cyber', 'Digital Security and Trust', 'Bill 194', 'surveillance', 'electronic monitoring']
+
+[[source]]
+id = "dentons-data"
+name = "Dentons Data (Canadian privacy, cyber and AI law)"
+url = "https://www.dentonsdata.com/feed/"
+homepage = "https://www.dentonsdata.com/"
+beat = "ca"
+tier = "T2"
+
+[[source]]
+id = "cge"
+name = "Canadian Government Executive (AI and digital government only)"
+url = "https://canadiangovernmentexecutive.ca/feed/"
+homepage = "https://canadiangovernmentexecutive.ca/"
+beat = "ca"
+tier = "T2"
+include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'generative', 'algorithm', 'automation', 'digital government', 'data strategy']
+
+[[source]]
+id = "the-dais"
+name = "The Dais (TMU, AI only)"
+url = "https://dais.ca/feed/"
+homepage = "https://dais.ca/"
+beat = "ca"
+tier = "T2"
+include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'generative', 'algorithm', 'automation']
+
+[[source]]
+id = "the-logic"
+name = "The Logic (Canadian tech and policy, AI only)"
+# Headlines only (the feed carries no article text) and most stories are paywalled.
+url = "https://thelogic.co/feed/"
+homepage = "https://thelogic.co/"
+beat = "ca"
+tier = "T2"
+include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'generative', '\bLLMs?\b', 'chatbot', 'compute', 'data cent(re|er)']
+
+# ---- Canada & Ontario: Canadian newsrooms ------------------------------------------------
+# Politics, Canada and Toronto sections of Canadian outlets, kept to stories that mention AI.
+# The triage model moves stories that are not about Canadian government or public services to the AI beat.
+
+[[source]]
+id = "cbc-politics"
+name = "CBC News · Politics (AI only)"
+url = "https://www.cbc.ca/webfeed/rss/rss-politics"
+homepage = "https://www.cbc.ca/news/politics"
+beat = "ca"
+tier = "T2"
+include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'generative', 'chatbot', 'algorithm', 'deepfake']
+
+[[source]]
+id = "cbc-canada"
+name = "CBC News · Canada (AI only)"
+url = "https://www.cbc.ca/webfeed/rss/rss-canada"
+homepage = "https://www.cbc.ca/news/canada"
+beat = "ca"
+tier = "T2"
+include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'generative', 'chatbot', 'algorithm', 'deepfake']
+
+[[source]]
+id = "cbc-toronto"
+name = "CBC News · Toronto (AI only)"
+url = "https://www.cbc.ca/webfeed/rss/rss-canada-toronto"
+homepage = "https://www.cbc.ca/news/canada/toronto"
+beat = "ca"
+tier = "T2"
+include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'generative', 'chatbot', 'algorithm', 'deepfake']
+
+[[source]]
+id = "global-news-politics"
+name = "Global News · Politics (AI only)"
+url = "https://globalnews.ca/politics/feed/"
+homepage = "https://globalnews.ca/politics/"
+beat = "ca"
+tier = "T2"
+include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'generative', 'chatbot', 'algorithm', 'deepfake']
+
+[[source]]
+id = "global-news-canada"
+name = "Global News · Canada (AI only)"
+url = "https://globalnews.ca/canada/feed/"
+homepage = "https://globalnews.ca/canada/"
+beat = "ca"
+tier = "T2"
+include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'generative', 'chatbot', 'algorithm', 'deepfake']
+
+[[source]]
+id = "global-news-toronto"
+name = "Global News · Toronto (AI only)"
+url = "https://globalnews.ca/toronto/feed/"
+homepage = "https://globalnews.ca/toronto/"
+beat = "ca"
+tier = "T2"
+include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'generative', 'chatbot', 'algorithm', 'deepfake']
+
+[[source]]
+id = "citynews-toronto"
+name = "CityNews Toronto (AI only)"
+url = "https://toronto.citynews.ca/feed/"
+homepage = "https://toronto.citynews.ca/"
+beat = "ca"
+tier = "T2"
+include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'generative', 'chatbot', 'algorithm', 'deepfake']
+
+[[source]]
+id = "globe-politics"
+name = "The Globe and Mail · Politics (AI only)"
+url = "https://www.theglobeandmail.com/arc/outboundfeeds/rss/category/politics/"
+homepage = "https://www.theglobeandmail.com/politics/"
+beat = "ca"
+tier = "T2"
+include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'generative', 'chatbot', 'algorithm', 'deepfake']
+
+# ---- Canada & Ontario: news searches -----------------------------------------------------
+# Bing News searches (Canadian edition, newest first) mirroring the daily public-sector AI watch.
+# Each outlet in the results counts as its own source, and links go straight to the article.
+# Bing's RSS is for personal, non-commercial use, which this is. Keep each search to plain words and
+# quoted phrases: Bing's RSS ignores OR and brackets and then returns unrelated news. It returns about
+# 10 results per search, so the searches are narrow; pause_s keeps them a few seconds apart.
+
+[[source]]
+id = "search-ontario-gov"
+name = "News search: Ontario government AI"
+kind = "search"
+url = "https://www.bing.com/news/search?q=Ontario+government+%22artificial+intelligence%22&format=rss&setlang=en-CA&cc=CA&qft=sortbydate%3d%221%22"
+homepage = "https://www.bing.com/news"
+beat = "ca"
+tier = "T2"
+pause_s = 3
+include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'generative', 'chatbot', 'algorithm', 'automated', 'deepfake']
+
+[[source]]
+id = "search-ontario-health"
+name = "News search: Ontario hospitals and AI"
+kind = "search"
+url = "https://www.bing.com/news/search?q=Ontario+hospital+%22artificial+intelligence%22&format=rss&setlang=en-CA&cc=CA&qft=sortbydate%3d%221%22"
+homepage = "https://www.bing.com/news"
+beat = "ca"
+tier = "T2"
+pause_s = 3
+include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'generative', 'chatbot', 'algorithm', 'scribe']
+
+[[source]]
+id = "search-ai-minister"
+name = "News search: the federal AI minister"
+kind = "search"
+url = "https://www.bing.com/news/search?q=%22Evan+Solomon%22+AI&format=rss&setlang=en-CA&cc=CA&qft=sortbydate%3d%221%22"
+homepage = "https://www.bing.com/news"
+beat = "ca"
+tier = "T2"
+pause_s = 3
+include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'generative', 'chatbot', 'algorithm', 'compute', 'data cent(re|er)', 'sovereign', 'digital']
+
+[[source]]
+id = "search-ipc"
+name = "News search: Ontario's privacy commissioner (IPC)"
+# Stands in for ipc.on.ca, which refuses GitHub's servers. IPC news is about privacy and access,
+# so there is no AI filter here; the model decides what matters.
+kind = "search"
+url = "https://www.bing.com/news/search?q=%22Information+and+Privacy+Commissioner%22+Ontario&format=rss&setlang=en-CA&cc=CA&qft=sortbydate%3d%221%22"
+homepage = "https://www.bing.com/news"
+beat = "ca"
+tier = "T2"
+pause_s = 3
+require = ['privacy commissioner|IPC|Kosseim']
+
+[[source]]
+id = "search-auditor"
+name = "News search: Ontario's Auditor General on technology"
+# Stands in for the auditor-on page, which often times out from GitHub's servers.
+kind = "search"
+url = "https://www.bing.com/news/search?q=%22Auditor+General%22+Ontario+technology&format=rss&setlang=en-CA&cc=CA&qft=sortbydate%3d%221%22"
+homepage = "https://www.bing.com/news"
+beat = "ca"
+tier = "T2"
+pause_s = 3
+require = ['auditor general']
+include = ['artificial intelligence', '\bA\.?I\b', 'technolog', 'cyber', 'digital', '\bdata\b', 'software', 'system']
+
+# GDELT's free news search covers far more outlets, but it rate-limits GitHub's shared servers
+# (HTTP 429 even after a retry), so these are paused. Check sources shows if that changes.
+[[source]]
+id = "gdelt-ontario"
+name = "News search: Ontario public-sector AI (GDELT)"
+kind = "search"
+url = "https://api.gdeltproject.org/api/v2/doc/doc?query=%22artificial%20intelligence%22%20(Ontario%20OR%20Toronto)%20(government%20OR%20ministry%20OR%20hospital%20OR%20%22school%20board%22%20OR%20municipal%20OR%20regulator%20OR%20privacy)%20sourcecountry:canada%20sourcelang:english&mode=artlist&format=rss&maxrecords=50&timespan=2d&sort=datedesc"
+homepage = "https://www.gdeltproject.org/"
+enabled = false
+beat = "ca"
+tier = "T2"
+pause_s = 6
+include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'generative', 'chatbot', 'algorithm', 'automated', 'deepfake']
+
+[[source]]
+id = "gdelt-federal"
+name = "News search: federal AI policy (GDELT)"
+kind = "search"
+url = "https://api.gdeltproject.org/api/v2/doc/doc?query=%22artificial%20intelligence%22%20(%22federal%20government%22%20OR%20Ottawa%20OR%20%22Government%20of%20Canada%22%20OR%20%22Evan%20Solomon%22%20OR%20%22Treasury%20Board%22%20OR%20%22Privacy%20Commissioner%22%20OR%20Parliament)%20sourcecountry:canada%20sourcelang:english&mode=artlist&format=rss&maxrecords=50&timespan=2d&sort=datedesc"
+homepage = "https://www.gdeltproject.org/"
+enabled = false
+beat = "ca"
+tier = "T2"
+pause_s = 6
+include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'generative', 'chatbot', 'algorithm', 'automated', 'deepfake']
+
+# Google Alerts can deliver any news search as a feed: google.com/alerts → Show options → Sources:
+# News, Region: Canada, Deliver to: RSS feed → Create, then copy the feed link. To use one, copy the
+# block below without the leading "# " and paste the feed link as `url`. Searches that mirror the watch:
+#   Ontario government "artificial intelligence"
+#   "Information and Privacy Commissioner of Ontario"
+#   ("Government of Canada" OR "federal government") "artificial intelligence"
+#
+# [[source]]
+# id = "alert-ontario-gov"
+# name = "Google Alert: Ontario government AI"
+# kind = "search"
+# url = "https://www.google.com/alerts/feeds/<your feed id>"
+# beat = "ca"
+# tier = "T2"
+
+# ---- Governance: global ---------------------------------------------------------------
 
 [[source]]
 id = "srinstitute"
@@ -197,16 +628,6 @@ name = "Montreal AI Ethics Institute"
 url = "https://montrealethics.ai/feed/"
 beat = "gov"
 tier = "T2"
-
-[[source]]
-id = "policy-options"
-name = "Policy Options (IRPP, AI only)"
-url = "https://policyoptions.irpp.org/feed/"
-beat = "gov"
-tier = "T2"
-include = ['artificial intelligence', '\bA\.?I\b', 'machine learning', 'algorithm', 'automated']
-
-# ---- Governance: global ---------------------------------------------------------------
 
 [[source]]
 id = "eu-ai-act"
@@ -257,3 +678,4 @@ beat = "gov"
 tier = "T2"
 # Paused: the feed is valid but publishes no items.
 enabled = false
+

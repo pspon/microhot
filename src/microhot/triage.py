@@ -33,34 +33,43 @@ WEIGHTS: dict[str, tuple[int, int, int, int, int]] = {
     "off_topic": (0, 0, 0, 0, 0),
 }
 GOV_TYPES = {"policy_action", "governance_analysis"}
+# Policy and governance stories never land in the general beat: when the model puts one there,
+# it goes to the policy beat instead. Other beats (such as a regional one) are kept as the model says.
+GENERAL_BEAT = "ai"
+POLICY_BEAT = "gov"
 MAX_TRIES = 3
 
-SCHEMA = {
-    "type": "object",
-    "properties": {
-        "items": {
-            "type": "array",
+
+def schema_for(beats: list[str]) -> dict:
+    return {
+        "type": "object",
+        "properties": {
             "items": {
-                "type": "object",
-                "properties": {
-                    "id": {"type": "string"},
-                    "type": {"type": "string", "enum": list(WEIGHTS)},
-                    "beat": {"type": "string", "enum": ["ai", "gov"]},
-                    "sig": {"type": "integer"},
-                    "nov": {"type": "integer"},
-                    "cred": {"type": "integer"},
-                    "res": {"type": "integer"},
-                    "act": {"type": "integer"},
-                    "dup": {"type": "string"},
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "id": {"type": "string"},
+                        "type": {"type": "string", "enum": list(WEIGHTS)},
+                        "beat": {"type": "string", "enum": list(beats)},
+                        "sig": {"type": "integer"},
+                        "nov": {"type": "integer"},
+                        "cred": {"type": "integer"},
+                        "res": {"type": "integer"},
+                        "act": {"type": "integer"},
+                        "dup": {"type": "string"},
+                    },
+                    "required": ["id", "type", "beat", "sig", "nov", "cred", "res", "act", "dup"],
+                    "additionalProperties": False,
                 },
-                "required": ["id", "type", "beat", "sig", "nov", "cred", "res", "act", "dup"],
-                "additionalProperties": False,
-            },
-        }
-    },
-    "required": ["items"],
-    "additionalProperties": False,
-}
+            }
+        },
+        "required": ["items"],
+        "additionalProperties": False,
+    }
+
+
+SCHEMA = schema_for([GENERAL_BEAT, POLICY_BEAT])  # the default two beats
 
 
 def compute_score(kind: str, axes: dict[str, int]) -> int:
@@ -75,7 +84,7 @@ def _clamp(value) -> int:
     return max(0, min(10, round(float(value))))
 
 
-def make_validator(batch_ids: list[str]):
+def make_validator(batch_ids: list[str], beats: list[str] | tuple[str, ...] = (GENERAL_BEAT, POLICY_BEAT)):
     def validate(obj: dict) -> None:
         entries = obj.get("items")
         if not isinstance(entries, list):
@@ -96,7 +105,7 @@ def make_validator(batch_ids: list[str]):
                 raise ValueError(f"item {item_id}: axes must be integers 0-10") from None
             by_id[item_id] = {
                 "type": kind,
-                "beat": entry.get("beat") if entry.get("beat") in ("ai", "gov") else None,
+                "beat": entry.get("beat") if entry.get("beat") in beats else None,
                 "axes": axes,
                 "dup": str(entry.get("dup") or "").strip().strip("[]"),
             }
@@ -154,10 +163,11 @@ def _apply(event: Event, result: dict, provider: str, settings: Settings, items:
     event.opinions = 1
     event.triaged_at = to_iso(now)
     event.triaged_by = provider
-    if event.type in GOV_TYPES:
-        event.beat = "gov"
-    elif result["beat"] in ("ai", "gov"):
-        event.beat = result["beat"]
+    beat = result["beat"] if result["beat"] in settings.beats else None
+    if event.type in GOV_TYPES and beat in (None, GENERAL_BEAT) and POLICY_BEAT in settings.beats:
+        beat = POLICY_BEAT
+    if beat:
+        event.beat = beat
 
 
 def _run_batches(
@@ -185,8 +195,9 @@ def _run_batches(
         recent_events = [] if second else _recent_for_prompt(events, items, exclude, int(settings.llm["recent_events_in_prompt"]))
         recent = [(f"E{i + 1}", e) for i, e in enumerate(recent_events)]
         message = build_message(batch, recent, items, settings, now)
+        beats = list(settings.beats)
         result = router.complete_json(
-            "triage", system, message, SCHEMA, "triage", make_validator([b for b, _ in batch]), max_tokens=6000
+            "triage", system, message, schema_for(beats), "triage", make_validator([b for b, _ in batch], beats), max_tokens=6000
         )
         report["calls"] += 1
         if result is None:

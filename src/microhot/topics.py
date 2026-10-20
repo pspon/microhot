@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from .config import Settings
 from .model import Event, Item
 
-GROUPS = ("org", "gov", "tech")
+GROUPS = ("org", "gov", "public", "tech")
 
 
 @dataclass

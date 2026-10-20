@@ -19,6 +19,7 @@
   {% elif s.summary['en'] %}
   <p class="lede" lang="en">{{ s.summary['en'] }}</p>
   {% endif %}
+  {{ m.why(s) }}
   {% if not s.written %}
   <p class="pending">{{ t('pending') }}</p>
   {% endif %}

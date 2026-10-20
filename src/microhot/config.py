@@ -12,8 +12,11 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 TIER_RANK = {"T1": 0, "T1.5": 1, "T2": 2}
-BEATS = ("ai", "gov")
 LANGS = ("en", "zh-TW")
+# How a source is read: "feed" (RSS/Atom), "page" (links on an HTML page, for sites without a feed)
+# or "search" (a news-search feed whose items come from many publishers).
+SOURCE_KINDS = ("feed", "page", "search")
+_BEAT_ID = re.compile(r"[a-z][a-z0-9-]*")
 
 DEFAULTS: dict = {
     "site": {
@@ -43,6 +46,7 @@ DEFAULTS: dict = {
         "max_items_per_feed": 40,
         "timeout_s": 20,
         "workers": 8,
+        "same_host_pause_s": 1.0,
         "user_agent": "Mozilla/5.0 (compatible; MicroHOT/0.1; private news digest)",
     },
     "cluster": {"window_hours": 72, "embedder": "lexical", "threshold": 0.2},
@@ -84,11 +88,25 @@ class Source:
     homepage: str = ""
     include: list[str] = field(default_factory=list)
     exclude: list[str] = field(default_factory=list)
+    require: list[str] = field(default_factory=list)
     enabled: bool = True
+    kind: str = "feed"
+    # kind = "page": which links on the page are news items (a regex matched against each absolute URL),
+    # and whether to open each new item's page for a short description (a few plain HTTP requests, 0 tokens).
+    link_pattern: str = ""
+    fetch_text: bool = False
+    # Seconds to wait before this source when another source on the same host was just read
+    # (some APIs allow one request every few seconds).
+    pause_s: float = 0.0
+    # An entry that keeps its link but changes its text (a bill reaching a new stage) is a new item.
+    track_updates: bool = False
 
     def matches(self, text: str) -> bool:
-        """Apply the include/exclude keyword rules (no model call)."""
+        """Apply the keyword rules (no model call): no `exclude` pattern, every `require` pattern,
+        and at least one `include` pattern when there are any."""
         if self.exclude and any(re.search(p, text, re.IGNORECASE) for p in self.exclude):
+            return False
+        if self.require and not all(re.search(p, text, re.IGNORECASE) for p in self.require):
             return False
         if self.include:
             return any(re.search(p, text, re.IGNORECASE) for p in self.include)
@@ -213,9 +231,17 @@ class Settings:
     def source(self, source_id: str) -> Source | None:
         return self._source_index.get(source_id)
 
-    def threshold_for(self, tier: str) -> int:
+    def threshold_for(self, tier: str, beat: str | None = None) -> int:
+        """Score needed by an event whose best source has `tier`; a beat may lower or raise it."""
+        own = self.beats.get(beat, {}).get("thresholds", {}) if beat else {}
+        if tier in own:
+            return int(own[tier])
         th = self.selection["thresholds"]
         return int(th.get(tier, th.get("T2", 76)))
+
+    def writes_why(self, beat: str) -> bool:
+        """Whether stories in this beat get a one-line "why it matters" note."""
+        return bool(self.beats.get(beat, {}).get("why", False))
 
     def __post_init__(self) -> None:
         self._source_index = {s.id: s for s in self.sources}
@@ -231,7 +257,7 @@ def _deep_merge(base: dict, override: dict) -> dict:
     return out
 
 
-def _parse_sources(raw: dict) -> list[Source]:
+def _parse_sources(raw: dict, beats: tuple[str, ...]) -> list[Source]:
     sources: list[Source] = []
     seen: set[str] = set()
     for entry in raw.get("source", []):
@@ -241,11 +267,17 @@ def _parse_sources(raw: dict) -> list[Source]:
         seen.add(sid)
         beat = entry.get("beat", "ai")
         tier = entry.get("tier", "T2")
-        if beat not in BEATS:
-            raise ValueError(f"source {sid}: beat must be one of {BEATS}")
+        kind = entry.get("kind", "feed")
+        if beat not in beats:
+            raise ValueError(f"source {sid}: beat must be one of {beats} (beats are set in config/site.toml)")
         if tier not in TIER_RANK:
             raise ValueError(f"source {sid}: tier must be one of {tuple(TIER_RANK)}")
-        for pattern in list(entry.get("include", [])) + list(entry.get("exclude", [])):
+        if kind not in SOURCE_KINDS:
+            raise ValueError(f"source {sid}: kind must be one of {SOURCE_KINDS}")
+        if kind == "page" and not entry.get("link_pattern"):
+            raise ValueError(f"source {sid}: a page source needs link_pattern (which links are news items)")
+        patterns = list(entry.get("include", [])) + list(entry.get("exclude", [])) + list(entry.get("require", []))
+        for pattern in patterns + ([entry["link_pattern"]] if entry.get("link_pattern") else []):
             re.compile(pattern)
         sources.append(
             Source(
@@ -258,10 +290,30 @@ def _parse_sources(raw: dict) -> list[Source]:
                 homepage=entry.get("homepage", ""),
                 include=list(entry.get("include", [])),
                 exclude=list(entry.get("exclude", [])),
+                require=list(entry.get("require", [])),
                 enabled=bool(entry.get("enabled", True)),
+                kind=kind,
+                link_pattern=str(entry.get("link_pattern", "")),
+                fetch_text=bool(entry.get("fetch_text", False)),
+                pause_s=float(entry.get("pause_s", 0.0)),
+                track_updates=bool(entry.get("track_updates", False)),
             )
         )
     return sources
+
+
+def _validate_beats(beats: dict) -> tuple[str, ...]:
+    for beat, cfg in beats.items():
+        if not _BEAT_ID.fullmatch(beat):
+            raise ValueError(f"beat id {beat!r} must be lowercase letters, digits and dashes")
+        if not isinstance(cfg, dict):
+            raise ValueError(f"[beats.{beat}] must be a table")
+        int(cfg.get("daily_quota", 5))
+        for tier, value in dict(cfg.get("thresholds", {})).items():
+            if tier not in TIER_RANK:
+                raise ValueError(f"[beats.{beat}] thresholds: tier must be one of {tuple(TIER_RANK)}")
+            int(value)
+    return tuple(beats)
 
 
 def _parse_providers(raw: dict) -> dict[str, Provider]:
@@ -298,8 +350,9 @@ def load_settings(root: Path | str | None = None) -> Settings:
     sources_path = root / "config" / "sources.toml"
     user = tomllib.loads(site_path.read_text(encoding="utf-8")) if site_path.exists() else {}
     raw = _deep_merge(DEFAULTS, user)
+    beats = _validate_beats(raw["beats"])
     sources_raw = tomllib.loads(sources_path.read_text(encoding="utf-8")) if sources_path.exists() else {}
-    sources = _parse_sources(sources_raw)
+    sources = _parse_sources(sources_raw, beats)
     providers = _parse_providers(raw.get("providers", {}))
     for step in ("digest", "review"):
         raw["llm"].setdefault(step, list(raw["llm"].get("write", [])))

@@ -1,0 +1,37 @@
+name: Check sources
+
+# Reads every source once from GitHub's servers (the same network the scheduled runs use) and
+# lists what each would yield: HTTP status, entries, how many pass the keyword rules, the newest
+# date and a sample headline. No model calls, nothing is saved. Runs on pull requests that touch
+# the sources or the fetch code (and posts the table as a comment on the pull request), and on
+# demand from the Actions tab (the table is in the run's summary).
+on:
+  pull_request:
+    paths:
+      - "config/sources.toml"
+      - "src/microhot/fetch.py"
+      - ".github/workflows/sources.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write # the results comment
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+      - name: Read every source
+        # Paused sources are included, so you can see when one starts working again.
+        run: uv run --frozen microhot sources --check --all --markdown sources-check.md
+      - name: Post the results on the pull request
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: gh pr comment "$PR" --body-file sources-check.md --edit-last --create-if-none || gh pr comment "$PR" --body-file sources-check.md

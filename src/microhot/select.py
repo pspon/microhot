@@ -1,4 +1,5 @@
-"""Pick stories: score threshold by best source tier, one slot per event, daily quota per beat."""
+"""Pick stories: score threshold by best source tier (a beat may set its own), one slot per event,
+daily quota per beat."""
 
 from __future__ import annotations
 
@@ -24,7 +25,7 @@ def event_tier(event: Event, items: dict[str, Item], settings: Settings) -> str:
 
 
 def threshold_for_event(event: Event, items: dict[str, Item], settings: Settings) -> int:
-    return settings.threshold_for(event_tier(event, items, settings))
+    return settings.threshold_for(event_tier(event, items, settings), event.beat)
 
 
 def is_candidate(event: Event, settings: Settings, now: datetime) -> bool:

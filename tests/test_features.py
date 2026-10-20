@@ -294,6 +294,6 @@ def test_alert_queue_and_delivery(project, monkeypatch):
 def test_cli_status_and_eval(project, capsys):
     assert main(["--root", str(project.root), "status"]) == 0
     out = capsys.readouterr().out
-    assert "digest chain" in out and "review chain" in out and "topics: 25" in out
+    assert "digest chain" in out and "review chain" in out and "topics: 31" in out
     assert main(["--root", str(project.root), "eval"]) == 0
     assert "labels: 0" in capsys.readouterr().out

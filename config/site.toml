@@ -11,12 +11,28 @@ url = "https://microhot.pages.dev"
 timezone = "America/Toronto"
 # The first run at or after this local time builds the daily edition and sends it to your channels.
 edition_after = "06:00"
-beat_order = ["ai", "gov"]
+beat_order = ["ai", "ca", "gov"]
 
+# Beats are the sections of the site and the editions. Each has its own daily quota.
+#   why:        stories in this beat get a one-line "why it matters" note, written in the same model
+#               call as the summary (a little more output, no extra calls)
+#   thresholds: optional per-tier scores for this beat; tiers left out use [selection] thresholds
+# Sources name their beat in config/sources.toml; the triage model can move a story to another beat.
 [beats.ai]
 label_en = "AI"
 label_zh = "AI 動態"
 daily_quota = 8
+
+[beats.ca]
+# Canadian public-sector AI: federal and Ontario government, regulators, legislatures, the broader
+# public sector (hospitals, school boards, municipalities, agencies), and analysis of their rules.
+label_en = "Canada & Ontario"
+label_zh = "加拿大與安大略省"
+daily_quota = 5
+why = true
+# A lower bar than the other beats, so official announcements and substantial legal or policy
+# analysis get in; the quota keeps the volume down. Check "Near misses" on the About page.
+thresholds = { T1 = 55, "T1.5" = 60, T2 = 68 }
 
 [beats.gov]
 label_en = "Governance & policy"
@@ -25,6 +41,7 @@ daily_quota = 5
 
 [selection]
 # Minimum score (0–100) by the best source tier in an event. Starting point: AIHOT's values.
+# A beat can override these (see [beats.ca]).
 thresholds = { T1 = 60, "T1.5" = 65, T2 = 76 }
 # Events scoring within this many points of their threshold get a second opinion.
 borderline = 5
@@ -92,6 +109,9 @@ max_age_hours = 72
 max_items_per_feed = 40
 timeout_s = 20
 workers = 8
+# Sources on the same host are read one after another, this many seconds apart (a source's
+# pause_s can ask for longer).
+same_host_pause_s = 1.0
 user_agent = "Mozilla/5.0 (compatible; MicroHOT/0.1; private news digest)"
 
 [cluster]

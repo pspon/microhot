@@ -13,7 +13,7 @@ from .model import Event, Item
 from .select import near_misses
 from .textutil import has_cjk, parse_iso, to_iso
 from .topics import Topic, effective_score
-from .views import story_view
+from .views import report_source, story_view
 
 MAX_FOLLOWUPS = 5
 
@@ -39,24 +39,28 @@ def followup_links(event: Event, items: dict[str, Item], settings: Settings, sin
             continue
         fetched = parse_iso(item.fetched) or since
         if fetched > since:
-            fresh.setdefault(item.source_id, []).append(item)
+            fresh.setdefault(item.origin, []).append(item)
         else:
-            seen_before.add(item.source_id)
-    new_sources = {sid: its for sid, its in fresh.items() if sid not in seen_before}
+            seen_before.add(item.origin)
+    new_sources = {origin: its for origin, its in fresh.items() if origin not in seen_before}
     if not new_sources:
         return []
-    official = any((src := settings.source(sid)) is not None and src.tier == "T1" for sid in new_sources)
+
+    def is_official(item: Item) -> bool:
+        src = settings.source(item.source_id)
+        return bool(src and src.tier == "T1" and not item.publisher)
+
+    official = any(is_official(its[0]) for its in new_sources.values())
     needed = int(settings.raw["editions"].get("followup_min_new_sources", 2))
     if not official and len(new_sources) < needed:
         return []
     links = []
-    for sid, its in new_sources.items():
-        src = settings.source(sid)
+    for its in new_sources.values():
         for item in its:
             links.append(
                 {
-                    "source": src.name if src else sid,
-                    "official": bool(src and src.tier == "T1"),
+                    "source": report_source(settings, item),
+                    "official": is_official(item),
                     "title": item.title,
                     "url": item.url,
                     "when": to_iso(item.when()),
