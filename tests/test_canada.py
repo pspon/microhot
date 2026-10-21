@@ -425,3 +425,19 @@ def test_bing_style_search_items_keep_their_outlet(canada):
     items, _ = fetch_all(canada, {}, {}, NOW, client=SiteServer(routes).client())
     found = [it for it in items if it.source_id == "news-search"]
     assert [(it.url, it.publisher) for it in found] == [("https://www.msn.com/en-ca/news/ontario-ai/ar-AA1", "Global News")]
+
+
+def test_title_only_feed_items_get_their_page_text(canada):
+    routes = base_routes()
+    routes["https://lab.test/feed.xml"] = ("application/rss+xml", rss([
+        ("FairStress: a deeper evaluation of fairness in LLM decisions", "https://lab.test/fairstress", H(2), ""),
+    ]))
+    routes["https://lab.test/fairstress"] = (
+        "text/html", article("FairStress", "A benchmark of demographic bias in LLM decisions across hiring and lending.", "2026-10-20T09:00:00-04:00")
+    )
+    server = SiteServer(routes)
+    items, _ = fetch_all(canada, {}, {}, NOW, client=server.client())
+    item = next(i for i in items if i.source_id == "lab")
+    assert item.snippet.startswith("A benchmark of demographic bias in LLM decisions")
+    # Search items already carry text and link to other outlets: their pages are never opened.
+    assert not [u for u in server.requests if "globalnews.test" in u or "cbc.test" in u]

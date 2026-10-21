@@ -11,6 +11,8 @@
 #   Page sources: `link_pattern` picks the news links on the page (a regex on each link's full URL).
 #          The first read only records the links already there; after that, new links are new items.
 #          fetch_text = true opens each new item's page for its description (plain requests, 0 tokens).
+#          Feed items with little or no text get their page opened automatically (up to 8 per run);
+#          fetch_text = true on a feed does it for every new item.
 #   pause_s: wait this long before reading a source after another one on the same host.
 # Set enabled = false to pause a source. Feed status shows on the site's About page, and
 # `uv run microhot sources --check` reads every source now and reports what it would yield.
