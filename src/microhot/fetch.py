@@ -7,6 +7,8 @@ Three kinds of source (`kind` in config/sources.toml):
 - "page": an HTML page without a feed, such as a newsroom list. Links matching `link_pattern` are
   news items. The first read only records the links already there; later reads report new ones.
   With `fetch_text`, each new item's own page is opened for its description (plain HTTP, 0 tokens).
+Feed items that arrive with little or no text (some feeds carry only titles) get the same treatment,
+so triage scores them on more than the headline; `fetch_text = true` on a feed does it for every item.
 """
 
 from __future__ import annotations
@@ -47,6 +49,7 @@ PAGE_TEXT_MAX = 8  # new items per page source and run whose own page is opened 
 PAGE_TITLE_MIN = 12  # shorter link texts ("Read more") are not usable headlines on their own
 PAGE_FLOOD = 15  # this many new links at once means the page changed shape: record them, report none
 PAGE_TEXT_PAUSE_S = 0.5  # between opening item pages on the same site
+FEED_TEXT_MIN = 80  # feed items with less text than this have their own page opened for more
 FEED_ACCEPT = "application/rss+xml, application/atom+xml, application/xml;q=0.9, text/xml;q=0.8, */*;q=0.5"
 PAGE_ACCEPT = "text/html,application/xhtml+xml;q=0.9,*/*;q=0.5"
 
@@ -425,7 +428,7 @@ def _admit(
     )
 
 
-def _feed_items(resp, source, state, settings, now, seen, stat, first_import: bool) -> tuple[list[Item], str | None]:
+def _feed_items(client, resp, source, state, settings, now, seen, stat, first_import: bool) -> tuple[list[Item], str | None]:
     cfg = settings.fetch
     parsed = feedparser.parse(resp.content, response_headers={"content-type": resp.headers.get("content-type", "")})
     entries = list(parsed.entries or [])
@@ -440,6 +443,7 @@ def _feed_items(resp, source, state, settings, now, seen, stat, first_import: bo
     undated_budget = int(cfg["first_import_undated_max"])
     age_limit = float(cfg["first_import_hours"] if first_import else cfg["max_age_hours"])
     items: list[Item] = []
+    opened = 0
     for entry in entries[: int(cfg["max_items_per_feed"])]:
         link = _entry_link(entry, source.url)
         if not link:
@@ -466,8 +470,19 @@ def _feed_items(resp, source, state, settings, now, seen, stat, first_import: bo
                 continue
             undated_budget -= 1
         item = _admit(source, settings, stat, seen, now, link=link, title=title, text=text, published=published, publisher=publisher)
-        if item:
-            items.append(item)
+        if not item:
+            continue
+        # A title-only entry gives triage nothing to go on: open its page once for the description.
+        # Search items are skipped: their links lead to many outlets and they come with text.
+        wants_text = source.fetch_text or len(text) < FEED_TEXT_MIN
+        if wants_text and source.kind != "search" and opened < PAGE_TEXT_MAX:
+            if opened:
+                time.sleep(PAGE_TEXT_PAUSE_S)
+            opened += 1
+            extra = article_details(client, link, settings).get("text", "")
+            if len(extra) > len(text):
+                item.snippet = truncate(extra, SNIPPET_CHARS)
+        items.append(item)
     return items, None
 
 
@@ -557,7 +572,7 @@ def fetch_source(
     if source.kind == "page":
         items, problem = _page_items(client, resp, source, state, settings, now, seen, stat, first_import)
     else:
-        items, problem = _feed_items(resp, source, state, settings, now, seen, stat, first_import)
+        items, problem = _feed_items(client, resp, source, state, settings, now, seen, stat, first_import)
     if problem == "empty":
         finish("empty", "the feed has no entries")
         return [], stat, state
