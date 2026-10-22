@@ -248,6 +248,9 @@ tier = "T1"
 [[source]]
 id = "legisinfo"
 name = "Parliament of Canada bills (LEGISinfo; AI, privacy and digital only)"
+enabled = false
+# Feed “Parliament of Canada bills (LEGISinfo; AI, privacy and digital only)” has failed 3 runs in a row (HTTP 403)
+# So feed paused on 2026 Oct 21
 # One entry per bill, dated by its latest stage; track_updates makes each new stage a new report.
 url = "https://www.parl.ca/legisinfo/en/bills/rss"
 homepage = "https://www.parl.ca/legisinfo/en/bills"
