@@ -117,7 +117,24 @@ look at each new item's page for its description, and a guard against redesigns)
 a share; `microhot sources --check` and the **Check sources** workflow. Budget: about 3–5 more calls a day,
 inside the caps.
 
+## Radar, story log and ratings (2026-10-24)
+
+Interesting stories on the radar dropped off after a run or two: the radar counted 24 hours from when a story
+was published (so a late find got a run or two) and showed only the warmest ten across all beats. Nothing kept
+a record of what was not picked once the 30-day window moved on.
+
+| Before | Now |
+|---|---|
+| Radar: 24 h from publication, ten slots shared by all beats | 72 h from when MicroHOT last found a report, five slots per beat (`[radar]`) |
+| Unpicked stories visible only on Today and topic pages | A **Radar** page by day (90 days), linked from Today and the menu, and in Search, marked "not picked" |
+| `events.jsonl` and `items/` kept for 30 days | Plus `log/YYYY-MM.jsonl`: one row per story, for good (reports, score and bar, peak temperature, editions, topics) |
+| Five near misses in the issue, 👍 only | Per beat, the closest to the bar and the warmest unpicked stories since the last edition, each with 👍 *wanted* and 👎 *rightly skipped* |
+| A threshold suggestion per tier, from 👍 only, for the shared thresholds only | One shift per beat (tiers pooled), plus topic boosts on top, measured against the current config, as lines to paste |
+
+All rule-based: no extra model calls.
+
 ## Later
 
 - JSON API sources.
+- A 👍/👎 on the Radar pages themselves (needs somewhere to store a tap, such as Cloudflare KV).
 - Optional small local embedding model (`model2vec`) for clustering, already wired in config.

@@ -10,6 +10,6 @@
   <input id="q" name="q" type="search" autocomplete="off" spellcheck="false">
 </form>
 <p id="search-status" class="note" role="status" data-loading="{{ t('search_loading') }}" data-none="{{ t('search_none') }}"></p>
-<ul id="results" class="results"></ul>
+<ul id="results" class="results" data-unpicked="{{ t('search_unpicked') }}"></ul>
 {% endblock %}
 {% block scripts %}<script src="/static/search.js?v={{ static_version }}" defer></script>{% endblock %}

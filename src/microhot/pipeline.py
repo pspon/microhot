@@ -9,6 +9,7 @@ from datetime import datetime
 
 from . import __version__
 from .alerts import detect as detect_alerts
+from .archive import update_log
 from .cluster import assign_events, get_embedder, roll_heat, update_heat
 from .config import Settings
 from .digest import digest_pending
@@ -62,6 +63,7 @@ def run(
         "edition": None,
         "reviews": [],
         "alerts": 0,
+        "log": {},
         "site": {},
     }
 
@@ -136,7 +138,8 @@ def run(
     }
     report["alerts"] = detect_alerts(settings, state, report, now)
 
-    # 5. Save state, then render the site.
+    # 5. Save state (the story log first, while every story's reports are still loaded), then render.
+    report["log"] = update_log(store, events, items, settings, topics, now)
     store.save_items(items)
     store.prune_items(now, keep_days)
     store.save_events(events, now, int(settings.retention["events_days"]))

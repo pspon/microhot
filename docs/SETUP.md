@@ -124,15 +124,27 @@ emails you about the failed workflow as usual.
 
 ## 6. Rate the picks (optional)
 
-The morning GitHub issue lists each pick with two boxes, 👍 *useful* and 👎 *not for me*, and a short list of
-near misses with a 👍 box for any you would have wanted. Tick them in the GitHub app or on the web; the next
-run reads the last 14 days of issues into `labels.jsonl` in the data repo. Unticking removes the rating.
+The morning GitHub issue lists each pick with two boxes, 👍 *useful* and 👎 *not for me*. Under **Not picked
+since the last edition** it lists, per beat, up to four stories that were left out (`[feedback]
+unpicked_per_beat`): half of them the closest to the bar, half the warmest, so what you saw on the radar gets
+its turn. Each has 👍 *wanted* and 👎 *rightly skipped*; every story appears in one issue only. Tick them in the
+GitHub app or on the web; the next run reads the last 14 days of issues into `labels.jsonl` in the data repo.
+Unticking removes the rating.
 
-The About page shows how many rated picks were useful. Once a tier has 10 ratings (`[feedback] min_labels`),
-it also suggests a threshold, the one that best balances what you liked against what you would have wanted.
-To see the details locally, clone the data repo as `data` next to the code and run the eval command:
-`git clone git@github.com:OWNER/microhot-data.git data`, then `uv run microhot eval`. Thresholds never
-change on their own: move them in `config/site.toml` when the suggestion looks right.
+The 👎 on stories that were not picked matters: without it, nothing records the stories you were glad to miss,
+and lowering a bar always looks free.
+
+The About page and `microhot eval` turn the ratings into suggestions, worked out against your current config:
+
+- **Per beat**, once it has 10 ratings (`[feedback] min_labels`) with at least 3 👍 and 3 👎: one shift for all its
+  tiers, the smallest that best separates what you wanted from what you did not, as a line to paste under
+  `[beats.<beat>]`. It also says when stories you wanted cleared the bar but lost to the daily quota.
+- **Per topic**, on top of the beat changes: boost points for up to three topics, as lines to paste into
+  `[adjust] boost`.
+
+Thresholds never change on their own. Paste a suggestion when it looks right; it then stops being made. To see
+the details locally, clone the data repo as `data` next to the code and run the eval command:
+`git clone git@github.com:OWNER/microhot-data.git data`, then `uv run microhot eval`.
 
 ## 7. Tuning
 
@@ -147,6 +159,11 @@ change on their own: move them in `config/site.toml` when the suggestion looks r
   `prompts/write.md`.
 - **What gets picked**: thresholds, second opinions and daily quotas per beat in `config/site.toml`; the reader
   description and rubric in `prompts/triage.md`. The About page's "Near misses" table shows what just missed.
+- **What was not picked**: `[radar]` in `config/site.toml`. "On the radar" on the Today page keeps a story for
+  `hours` (72) after MicroHOT last found a report on it, with `per_beat` (5) slots in each beat. The **Radar**
+  page lists every story that was not picked, by the day it was found, for `archive_days` (90), and Search
+  covers them for as long. The data repo keeps them all in `log/YYYY-MM.jsonl`: one row per story, picked or
+  not, with its reports, score, bar, peak temperature, editions and topics. It is never pruned.
 - **Your own nudges**: `[adjust]` in `config/site.toml`. `boost` adds points when a story matches a topic or a
   pattern (for example `{ topic = "canada", points = 8 }`); `mute` drops matching items before any model sees
   them. Boosted stories show their points on the story page.

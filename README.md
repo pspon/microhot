@@ -39,8 +39,10 @@ Most of what you see costs no tokens at all:
   **boost** by a few points or **mute** entirely.
 - **Search, feeds and "new since your last visit"**: a static search index, RSS per beat and for editions, and
   a dot on stories picked since you last opened the site (kept in your browser only).
-- **Ratings**: tick 👍 or 👎 in the morning GitHub issue; `microhot eval` and the About page tell you whether
-  the thresholds match your taste.
+- **What was not picked**: "On the radar" keeps unpicked stories for three days, per beat; the **Radar** page
+  lists them all by day, Search finds them, and the data repo keeps a log of every story for good.
+- **Ratings**: tick 👍 or 👎 on the picks and on the stories left out, in the morning GitHub issue; `microhot
+  eval` and the About page suggest each beat's thresholds and topic boosts, ready to paste.
 - **Alerts**: a feed failing three runs in a row, or a model provider failing, sends you a note.
 
 A few things spend a little: an **overview** for big stories with three or more sources (at most two a day),

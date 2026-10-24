@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 
 from .config import Settings
 from .model import Event, Item
-from .select import near_misses
+from .radar import issue_unpicked
 from .textutil import has_cjk, parse_iso, to_iso
 from .topics import Topic, effective_score
 from .views import report_source, story_view
@@ -137,7 +137,7 @@ def build_edition(
         "highlights": [s["id"] for s in ranked[1 : 1 + highlights_n]],
         "stories": stories,
         "followups": follow_views,
-        "near_misses": near_misses(events, items, settings, now, limit=int(settings.raw["feedback"]["near_misses_in_issue"])),
+        "unpicked": issue_unpicked(events, items, settings, since, topics or []),
         "stats": _stats(stories, follow_views),
         "delivered": {},
     }

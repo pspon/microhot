@@ -7,6 +7,8 @@ Layout:
   state.json               feed state (ETag, first import), edition bookkeeping
   usage/YYYY-MM.jsonl      one line per model call
   runs/latest.json         last run report; runs/YYYY-MM.jsonl keeps history
+  log/YYYY-MM.jsonl        every story ever seen, one row each, never pruned (see archive.py)
+  labels.jsonl             your 👍/👎 ratings from the morning issues
 """
 
 from __future__ import annotations

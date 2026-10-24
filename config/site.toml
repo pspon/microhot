@@ -88,10 +88,21 @@ weekly_stories = 12
 monthly_stories = 20
 overview = true    # one model call for a short overview; false = stories only
 
+[radar]
+# "On the radar" on the Today page: stories that were not picked, warmest first.
+# A story stays this many hours after MicroHOT last found a report on it (not after it was published).
+hours = 72
+per_beat = 5
+# Days of "Not picked" pages (by the day each story was found) and of unpicked stories in Search.
+# The story log in the data repo (log/YYYY-MM.jsonl) keeps every story for good.
+archive_days = 90
+
 [feedback]
-# Near misses listed in the GitHub issue, where a 👍 means "should have been picked".
-near_misses_in_issue = 5
-# Ratings needed in a tier before the About page and `microhot eval` suggest a threshold.
+# Unpicked stories per beat in the morning GitHub issue, each with 👍 "wanted" and 👎 "rightly skipped":
+# half the closest to the bar, half the warmest, from the stories found since the previous edition.
+unpicked_per_beat = 4
+# Ratings needed in a beat (with at least 3 👍 and 3 👎) before the About page and `microhot eval`
+# suggest moving its thresholds. Topic boosts are suggested on top of that.
 min_labels = 10
 
 [alerts]
