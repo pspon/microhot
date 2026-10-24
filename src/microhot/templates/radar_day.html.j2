@@ -1,0 +1,25 @@
+{% extends "base.html.j2" %}
+{% import "_macros.html.j2" as m with context %}
+{% block title %}{{ t('notpicked_day_title', date=day_label) }} | {{ site_name }}{% endblock %}
+{% block main %}
+<section class="day" aria-labelledby="day-title">
+  <h1 id="day-title">{{ t('notpicked_day_title', date=day_label) }}</h1>
+  <p class="note">{{ t('notpicked_day_note') }} <a href="{{ prefix }}/radar.html">{{ t('notpicked_all_days') }}</a></p>
+</section>
+{% for g in groups %}
+<section class="radar archive" aria-labelledby="beat-{{ g.beat }}">
+  <h2 id="beat-{{ g.beat }}">{{ g.label }} <span class="count">{{ g.stories|length }}</span></h2>
+  <ul class="radar-list">
+    {% for s in g.stories %}
+    <li id="s-{{ s.id }}"><span class="gauge">{{ m.reading(s) }}</span><span class="radar-body"><a href="{{ s.url }}">{{ s.title[lang] }}</a>
+      <span class="meta-inline">{% if s.others %}{{ t('and_more', name=s.source, n=s.others, total=s.others + 1) }}{% else %}{{ s.source }}{% endif %}
+      · {% if s.score is none %}{{ t('not_scored') }}{% else %}{{ t('score_of', score=s.score, threshold=s.threshold) }}{% endif %}{% if s.type %} · {{ t('type_' ~ s.type) }}{% endif %}</span></span></li>
+    {% endfor %}
+  </ul>
+</section>
+{% endfor %}
+<nav class="pager" aria-label="{{ t('notpicked_title') }}">
+  {% if older %}<a href="{{ prefix }}/r/{{ older }}.html" rel="prev">{{ t('prev_day') }}</a>{% else %}<span></span>{% endif %}
+  {% if newer %}<a href="{{ prefix }}/r/{{ newer }}.html" rel="next">{{ t('next_day') }}</a>{% endif %}
+</nav>
+{% endblock %}

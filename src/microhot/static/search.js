@@ -1,5 +1,6 @@
-// Search over every edition on this site. The index (/search.json) is built with the site;
-// matching happens in the browser, so nothing leaves the page.
+// Search over every edition on this site, plus the recent stories that were not picked (marked).
+// The index (/search.json) is built with the site; matching happens in the browser, so nothing
+// leaves the page.
 (function () {
   var input = document.getElementById("q");
   var list = document.getElementById("results");
@@ -35,7 +36,7 @@
       a.textContent = r.t[col] || r.t[0];
       var meta = document.createElement("span");
       meta.className = "meta-inline";
-      meta.textContent = " " + r.d + ", " + r.s;
+      meta.textContent = " " + r.d + ", " + r.s + (r.x ? ", " + (list.getAttribute("data-unpicked") || "") : "");
       var p = document.createElement("p");
       p.className = "summary";
       p.textContent = r.m[col] || r.m[0];

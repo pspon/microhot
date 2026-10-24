@@ -25,16 +25,31 @@
   <p class="note">{{ t('ratings_note') }}</p>
   {% if ratings.labels %}
   {% if ratings.precision is not none %}<p>{{ t('ratings_precision', useful=ratings.picks_useful, rated=ratings.picks_rated, pct=(ratings.precision * 100)|round|int) }}</p>{% endif %}
-  {% if ratings.misses_wanted %}<p>{{ t('ratings_wanted', n=ratings.misses_wanted) }}</p>{% endif %}
-  <ul class="plain">
-    {% for tier, row in ratings.suggestions.items() if row.labels %}
-    {% if row.suggested is none %}
-    <li>{{ t('ratings_tier_more', tier=tier, n=row.labels, min=min_labels) }}</li>
-    {% else %}
-    <li>{{ t('ratings_tier_suggest', tier=tier, t=row.suggested, now=row.current, p=(row.precision * 100)|round|int, r=(row.recall * 100)|round|int) }}</li>
-    {% endif %}
+  {% if ratings.misses_rated %}<p>{{ t('ratings_unpicked', wanted=ratings.misses_wanted, skipped=ratings.misses_skipped) }}</p>{% endif %}
+  {% if ratings.beats %}
+  <h3>{{ t('ratings_beats') }}</h3>
+  <ul class="plain suggestions">
+    {% for b in ratings.beats %}
+    <li><strong>{{ beat_labels[b.beat][lang] }}</strong>{{ t('label_sep') }}{{ t('ratings_beat_count', n=b.labels, up=b.wanted, down=b.unwanted) }}
+      {% if not b.ready %}{{ t('ratings_beat_more', min=ratings.min_labels, each=ratings.min_each) }}
+      {% elif not b.shift %}{{ t('ratings_beat_ok', p=(b.precision * 100)|round|int, r=(b.recall * 100)|round|int) }}
+      {% else %}{{ t('ratings_beat_raise' if b.shift > 0 else 'ratings_beat_lower', n=b.shift|abs, p=(b.precision * 100)|round|int, r=(b.recall * 100)|round|int) }}
+      <code class="paste">[beats.{{ b.beat }}] {{ b.toml }}</code>{% endif %}
+      {% if b.quota_cut >= 2 %}<br><span class="meta-inline">{{ t('ratings_quota', n=b.quota_cut, quota=b.quota) }}</span>{% endif %}
+    </li>
     {% endfor %}
   </ul>
+  {% endif %}
+  {% if ratings.topics %}
+  <h3>{{ t('ratings_topics') }}</h3>
+  <p class="note">{{ t('ratings_topics_note') }}</p>
+  <ul class="plain suggestions">
+    {% for tp in ratings.topics %}
+    <li><strong>{{ topic_names[tp.topic][lang] if tp.topic in topic_names else tp.topic }}</strong>{{ t('label_sep') }}{{ t('ratings_topic_line', change="%+d"|format(tp.change), n=tp.labels, before=(tp.f1_before * 100)|round|int, after=(tp.f1_after * 100)|round|int) }}
+      <code class="paste">{{ tp.toml }}</code></li>
+    {% endfor %}
+  </ul>
+  {% endif %}
   {% else %}
   <p>{{ t('ratings_none') }}</p>
   {% endif %}

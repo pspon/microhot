@@ -74,12 +74,36 @@ def edition_markdown(edition: dict, settings: Settings, lang: str, *, checkboxes
             lines += _story_lines(story, settings, lang, checkboxes=checkboxes)
     if not edition["stories"] and not edition.get("followups"):
         lines += [i18n.t(lang, "edition_empty"), ""]
-    if checkboxes and edition.get("near_misses"):
+    if checkboxes and edition.get("unpicked"):
+        lines += _unpicked_lines(edition["unpicked"], settings, lang)
+    elif checkboxes and edition.get("near_misses"):  # editions built before the unpicked section
         lines += [f"## {i18n.t(lang, 'about_misses')}", "", i18n.t(lang, "rate_misses_note"), ""]
         for miss in edition["near_misses"]:
             lines.append(f"- [ ] 👍 [{miss['title']}]({miss['url']}) ({miss['score']}/{miss['threshold']}) <!-- mh:{miss['id']}:want -->")
         lines.append("")
     return "\n".join(lines).strip() + "\n"
+
+
+def _link_text(text: str) -> str:
+    return text.replace("[", "(").replace("]", ")")
+
+
+def _unpicked_lines(rows: list[dict], settings: Settings, lang: str) -> list[str]:
+    """Stories not picked since the previous edition, each with 👍 wanted / 👎 rightly skipped."""
+    lines = [f"## {i18n.t(lang, 'issue_unpicked')}", "", i18n.t(lang, "issue_unpicked_note"), ""]
+    for beat in settings.beat_order:
+        mine = [r for r in rows if r["beat"] == beat]
+        if not mine:
+            continue
+        lines += [f"### {_beat_label(settings, beat, lang)}", ""]
+        for row in mine:
+            score = i18n.t(lang, "score_of", score=row["score"], threshold=row["threshold"])
+            lines.append(f"[{_link_text(row['title'])}]({row['url']}) · {row['source']} · {score}  ")
+            lines.append(f"- [ ] 👍 {i18n.t(lang, 'rate_want')} <!-- mh:{row['id']}:want -->")
+            lines.append(f"- [ ] 👎 {i18n.t(lang, 'rate_skip')} <!-- mh:{row['id']}:skip -->")
+            lines.append("")
+    lines += [f"[{i18n.t(lang, 'radar_all')}]({settings.site_url}{i18n.prefix(lang)}/radar.html)", ""]
+    return lines
 
 
 def review_markdown(review: dict, settings: Settings, lang: str) -> str:

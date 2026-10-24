@@ -135,6 +135,10 @@ a:hover { text-decoration-color: currentColor; }
 .radar-list .reading { font-size: 0.92rem; }
 .radar-body a { text-decoration: none; }
 .radar-body a:hover { text-decoration: underline; }
+.radar > h3 { font-size: 0.86rem; font-weight: 600; color: var(--muted); margin: 0.8rem 0 0.1rem; }
+.radar .more { margin: 0.6rem 0 0; font-size: 0.92rem; }
+.radar.archive { margin-top: 1.6rem; }
+.radar-list li:target { background: var(--notice); }
 .edition-link { margin-top: 2rem; }
 
 /* ---- event page ---------------------------------------------------------------------- */
@@ -221,6 +225,17 @@ section > h3 { font-size: 0.92rem; margin: 1rem 0 0.2rem; }
 .quiet { color: var(--muted); font-size: 0.92rem; margin: 0.4rem 0 0; }
 .quiet a { color: inherit; }
 .plain li { padding: 0.2rem 0; }
+.suggestions li { padding: 0.35rem 0; }
+code.paste {
+  display: block;
+  margin: 0.25rem 0 0;
+  padding: 0.3rem 0.5rem;
+  background: var(--notice);
+  border-radius: 3px;
+  font-size: 0.82rem;
+  overflow-x: auto;
+  white-space: pre;
+}
 .coverage li.is-update .src { color: var(--ink); }
 .search { margin: 0.8rem 0 0.4rem; }
 .search label { display: block; font-size: 0.9rem; color: var(--muted); margin-bottom: 0.3rem; }
@@ -245,5 +260,5 @@ section > h3 { font-size: 0.92rem; margin: 1rem 0 0.2rem; }
 }
 
 @media print {
-  .nav, .colophon, .radar { display: none; }
+  .nav, .colophon, .radar:not(.archive) { display: none; }
 }

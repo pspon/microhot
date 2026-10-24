@@ -13,22 +13,24 @@ from importlib import resources
 from jinja2 import Environment, PackageLoader, StrictUndefined, select_autoescape
 
 from . import i18n
+from .archive import load_log
 from .config import LANGS, Settings
 from .feedback import evaluate
 from .llm.usage import UsageLog
 from .markdown import edition_markdown, edition_title, review_markdown, review_title
 from .model import Event, Item
+from .radar import radar_by_beat
 from .select import near_misses
 from .store import Store, read_json
-from .textutil import parse_iso
+from .textutil import parse_iso, truncate
 from .topics import GROUPS, Topic, effective_score, load_topics, topics_for
 from .views import story_view, temp_class, temperature
 
 TODAY_HOURS = 24
-RADAR_LIMIT = 10
 FEED_LIMIT = 50
 TOPIC_OTHER_DAYS = 7
-SEARCH_LIMIT = 3000
+SEARCH_LIMIT = 3000  # picks, and separately stories not picked
+SEARCH_SUMMARY_CHARS = 200
 AXES = ["sig", "nov", "cred", "res", "act"]
 STATIC_FILES = ("style.css", "icon.svg", "search.js", "visit.js")
 
@@ -148,14 +150,51 @@ class SiteBuilder:
         return [self.view(e) for e in picked]
 
     def _radar(self) -> list[dict]:
-        since = self.now - timedelta(hours=TODAY_HOURS)
-        rows = [
-            e
-            for e in self._live()
-            if not e.selected_at and e.type != "off_topic" and (parse_iso(e.last_seen) or self.now) >= since
-        ]
-        rows.sort(key=lambda e: (-e.heat, -(e.score or -1), e.id))
-        return [self.view(e) for e in rows[:RADAR_LIMIT]]
+        """[{"beat", "stories"}] for the Today page, beats in site order."""
+        by_beat = radar_by_beat(self.events, self.items, self.settings, self.now)
+        return [{"beat": beat, "stories": [self.view(e) for e in rows]} for beat, rows in by_beat.items()]
+
+    def _not_picked(self) -> list[dict]:
+        """Stories in the log found in the last [radar] archive_days and never picked, newest first."""
+        days = int(self.settings.radar["archive_days"])
+        if days <= 0:
+            return []
+        rows = load_log(self.store, self.settings, self.now - timedelta(days=days), self.now)
+        return [r for r in rows if not r.get("picked") and r.get("type") != "off_topic"]
+
+    def _archive_days(self, rows: list[dict]) -> list[dict]:
+        """The not-picked stories grouped by the local day they were found, newest day first."""
+        days: dict[str, list[dict]] = {}
+        for row in rows:
+            found = parse_iso(row["found"]) or self.now
+            days.setdefault(found.astimezone(self.tz).date().isoformat(), []).append(self._archive_view(row))
+        out = []
+        for date in sorted(days, reverse=True):
+            stories = days[date]
+            stories.sort(key=lambda v: (v["score"] is None, -(v["score"] or 0), -v["temp"], v["id"]))
+            counts = {beat: sum(1 for v in stories if v["beat"] == beat) for beat in self.settings.beat_order}
+            out.append({"date": date, "stories": stories, "counts": {b: n for b, n in counts.items() if n}})
+        return out
+
+    def _archive_view(self, row: dict) -> dict:
+        score = None if row.get("score") is None else int(row["score"]) + int(row.get("boost") or 0)
+        temp = float(row.get("temp_max") or temperature(0))
+        names = list(dict.fromkeys(link["source"] for link in row.get("links", [])))
+        return {
+            "id": row["id"],
+            "beat": row.get("beat"),
+            "type": row.get("type"),
+            "title": {"en": row["title"], "zh-TW": row.get("title_zh") or row["title"]},
+            "summary": row.get("summary") or "",
+            "url": row.get("url", ""),
+            "source": row.get("source", ""),
+            "others": len([n for n in names if n != row.get("source")]),
+            "score": score,
+            "threshold": row.get("threshold"),
+            "temp": temp,
+            "temp_class": temp_class(temp),
+            "found": row["found"],
+        }
 
     def _picked_views(self) -> list[dict]:
         picked = [e for e in self._live() if e.selected_at]
@@ -178,7 +217,8 @@ class SiteBuilder:
             pages.append({"topic": topic, "picked": picked, "other": rest[:15], "count": len(picked)})
         return pages
 
-    def _search_index(self, editions: list[dict], picked_views: list[dict]) -> list[dict]:
+    def _search_index(self, editions: list[dict], picked_views: list[dict], archive: list[dict]) -> list[dict]:
+        """Every pick, then the stories not picked in the archive window (marked "x": 1)."""
         rows: dict[str, dict] = {}
 
         def add(story: dict, date: str) -> None:
@@ -198,8 +238,24 @@ class SiteBuilder:
             if view["id"] not in rows:
                 selected = parse_iso(view["selected_at"]) or self.now
                 add(view, selected.astimezone(self.tz).date().isoformat())
-        ordered = sorted(rows.values(), key=lambda r: (r["d"], r["i"]), reverse=True)
-        return ordered[:SEARCH_LIMIT]
+        ordered = sorted(rows.values(), key=lambda r: (r["d"], r["i"]), reverse=True)[:SEARCH_LIMIT]
+        unpicked = []
+        for day in archive:
+            for story in day["stories"]:
+                if story["id"] in rows:
+                    continue
+                unpicked.append({
+                    "i": story["id"],
+                    "d": day["date"],
+                    "u": f"/r/{day['date']}.html#s-{story['id']}",
+                    "s": story["source"],
+                    "t": [story["title"]["en"], story["title"]["zh-TW"]],
+                    "m": [truncate(story["summary"], SEARCH_SUMMARY_CHARS), ""],
+                    "x": 1,
+                })
+        merged = ordered + unpicked[:SEARCH_LIMIT]
+        merged.sort(key=lambda r: r["d"], reverse=True)  # stable: picks stay ahead of a day's other stories
+        return merged
 
     def _ratings(self) -> dict:
         try:
@@ -229,13 +285,15 @@ class SiteBuilder:
         self.event_page_ids = {e.id for e in selected}
         today = self._today_stories()
         radar = self._radar()
+        archive = self._archive_days(self._not_picked())
         picked_views = self._picked_views()
         editions = [ed for ed in (self.store.load_edition(d) for d in self.store.list_editions()) if ed]
         reviews = self.store.list_reviews()
         topic_pages = self._topic_pages(picked_views)
         llm_ready = bool(self.run_summary.get("llm", {}).get("active", {}).get("triage"))
         high = max((s["temp"] for s in today), default=None)
-        self._write("search.json", json.dumps(self._search_index(editions, picked_views), ensure_ascii=False, separators=(",", ":")))
+        search = self._search_index(editions, picked_views, archive)
+        self._write("search.json", json.dumps(search, ensure_ascii=False, separators=(",", ":")))
 
         usage = UsageLog(self.store.usage_dir, self.tz)
         about_ctx = {
@@ -247,8 +305,9 @@ class SiteBuilder:
             "runs": self.store.recent_runs(10),
             "misses": near_misses(self.events, self.items, self.settings, self.now),
             "ratings": self._ratings(),
-            "min_labels": int(self.settings.raw["feedback"].get("min_labels", 10)),
             "beats": [(b, self.settings.beats[b]) for b in self.settings.beat_order],
+            "beat_labels": {b: {lang: self._beat_label(b, lang) for lang in LANGS} for b in self.settings.beat_order},
+            "topic_names": {tp.id: {"en": tp.name_en, "zh-TW": tp.name_zh} for tp in self.topics},
         }
 
         for lang in LANGS:
@@ -261,7 +320,9 @@ class SiteBuilder:
                 "/",
                 groups=self._group(today, lang),
                 any_stories=bool(today),
-                radar=radar,
+                radar=[{**g, "label": self._beat_label(g["beat"], lang)} for g in radar],
+                radar_hours=int(self.settings.radar["hours"]),
+                has_archive=bool(archive),
                 llm_ready=llm_ready,
                 high=high,
                 high_class=temp_class(high) if high else "cool",
@@ -364,6 +425,7 @@ class SiteBuilder:
             for tp in topic_pages:
                 path = f"/t/{tp['topic'].id}.html"
                 self._render("topic.html.j2", f"{p}{path}", lang, "topics", path, tp=tp, name=tp["topic"].name(lang))
+            self._render_archive(archive, lang)
             self._render("search.html.j2", f"{p}/search.html", lang, "search", "/search.html")
             self._render("about.html.j2", f"{p}/about.html", lang, "about", "/about.html", **about_ctx)
             rfc822 = lambda iso: format_datetime(parse_iso(iso) or self.now)
@@ -397,12 +459,53 @@ class SiteBuilder:
         return {
             "pages": self.written,
             "today": len(today),
-            "radar": len(radar),
+            "radar": sum(len(g["stories"]) for g in radar),
+            "not_picked_days": len(archive),
             "events": len(selected),
             "editions": len(editions),
             "reviews": len(reviews),
             "topics": len(topic_pages),
         }
+
+    # ---- not picked, by day ------------------------------------------------------------------
+    def _day_label(self, date: str, lang: str) -> str:
+        return i18n.fmt_date(parse_iso(f"{date}T12:00:00Z") or self.now, lang, self.tz)
+
+    def _render_archive(self, archive: list[dict], lang: str) -> None:
+        p = i18n.prefix(lang)
+        self._render(
+            "radar.html.j2",
+            f"{p}/radar.html",
+            lang,
+            "radar",
+            "/radar.html",
+            days=[
+                {
+                    "date": day["date"],
+                    "label": self._day_label(day["date"], lang),
+                    "total": len(day["stories"]),
+                    "counts": [(self._beat_label(beat, lang), n) for beat, n in day["counts"].items()],
+                }
+                for day in archive
+            ],
+            archive_days=int(self.settings.radar["archive_days"]),
+        )
+        for i, day in enumerate(archive):
+            path = f"/r/{day['date']}.html"
+            self._render(
+                "radar_day.html.j2",
+                f"{p}{path}",
+                lang,
+                "radar",
+                path,
+                day_label=self._day_label(day["date"], lang),
+                groups=[
+                    {"beat": beat, "label": self._beat_label(beat, lang), "stories": [s for s in day["stories"] if s["beat"] == beat]}
+                    for beat in day["counts"]
+                ],
+                newer=archive[i - 1]["date"] if i > 0 else None,
+                older=archive[i + 1]["date"] if i + 1 < len(archive) else None,
+            )
 
     # ---- about page tables -----------------------------------------------------------------
     def _sources_table(self) -> list[dict]:

@@ -21,15 +21,19 @@
 {% if not any_stories %}
 <p class="empty">{{ t('empty_today') }}</p>
 {% endif %}
-{% if radar %}
+{% if radar or has_archive %}
 <section class="radar" aria-labelledby="radar-title">
   <h2 id="radar-title">{{ t('radar') }}</h2>
-  <p class="note">{{ t('radar_note') }}</p>
+  <p class="note">{{ t('radar_note', hours=radar_hours) }}</p>
+  {% for g in radar %}
+  {% if radar|length > 1 %}<h3>{{ g.label }}</h3>{% endif %}
   <ul class="radar-list">
-    {% for s in radar %}
+    {% for s in g.stories %}
     <li><span class="gauge">{{ m.reading(s) }}{{ m.heat_notes(s) }}</span><span class="radar-body"><a href="{{ s.url }}">{{ s.title[lang] }}</a> <span class="meta-inline">{{ source_line(s) }}</span></span></li>
     {% endfor %}
   </ul>
+  {% endfor %}
+  {% if has_archive %}<p class="more"><a href="{{ prefix }}/radar.html">{{ t('radar_more') }}</a></p>{% endif %}
 </section>
 {% endif %}
 {% if latest_edition %}

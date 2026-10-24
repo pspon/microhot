@@ -67,7 +67,8 @@ DEFAULTS: dict = {
     "editions": {"highlights": 3, "followup_min_new_sources": 2},
     "digest": {"enabled": True, "min_sources": 3, "max_per_day": 2, "regrow_sources": 2, "reports": 6, "report_chars": 700},
     "reviews": {"weekly": True, "monthly": True, "weekly_stories": 12, "monthly_stories": 20, "overview": True},
-    "feedback": {"near_misses_in_issue": 5, "min_labels": 10},
+    "radar": {"hours": 72, "per_beat": 5, "archive_days": 90},
+    "feedback": {"unpicked_per_beat": 4, "min_labels": 10},
     "alerts": {"feed_errors_in_a_row": 3, "channels": ["github_issue", "telegram"]},
     "providers": {},
     "channels": {},
@@ -193,6 +194,14 @@ class Settings:
     @property
     def channels(self) -> dict:
         return self.raw["channels"]
+
+    @property
+    def radar(self) -> dict:
+        return self.raw["radar"]
+
+    @property
+    def feedback(self) -> dict:
+        return self.raw["feedback"]
 
     @property
     def retention(self) -> dict:

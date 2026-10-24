@@ -148,8 +148,13 @@ def test_search_index_visit_markers_and_feeds(project):
     _run(project)
     public = project.public_dir
     index = json.loads((public / "search.json").read_text(encoding="utf-8"))
-    assert len(index) == 2 and all(row["u"].startswith("/e/") and len(row["t"]) == 2 for row in index)
-    assert any("人工智慧" in row["t"][1] for row in index)
+    picks = [row for row in index if not row.get("x")]
+    assert len(picks) == 2 and all(row["u"].startswith("/e/") and len(row["t"]) == 2 for row in picks)
+    assert any("人工智慧" in row["t"][1] for row in picks)
+    # Stories that were not picked are searchable too, linked to their day on the "Not picked" pages.
+    others = [row for row in index if row.get("x")]
+    assert {row["t"][0] for row in others} == {"Customer story: a retailer uses Nova for support", "Weekly roundup: ten AI links"}
+    assert all(row["u"].startswith("/r/2026-10-20.html#s-") for row in others)
     for lang in ("", "zh-tw/"):
         assert (public / f"{lang}search.html").exists()
         for feed in ("feed.xml", "feed/ai.xml", "feed/gov.xml", "feed/editions.xml"):
@@ -225,12 +230,18 @@ def test_ratings_from_issue_checkboxes(project):
     edition = store.load_edition("2026-10-20")
     body = edition_body(edition, project, ["en", "zh-TW"])
     a, b = (s["id"] for s in edition["stories"])
-    miss = edition["near_misses"][0]["id"]
-    assert body.count("<!-- mh:") == 4 + len(edition["near_misses"]) and "<!-- mh-edition:2026-10-20 -->" in body
+    # The stories found since the previous edition and not picked, each with 👍 wanted and 👎 rightly skipped.
+    unpicked = edition["unpicked"]
+    assert {r["title"] for r in unpicked} == {"Customer story: a retailer uses Nova for support", "Weekly roundup: ten AI links"}
+    assert all(r["beat"] == "ai" and r["raw"] is not None and "topics" in r for r in unpicked)
+    want, skip = (r["id"] for r in unpicked)
+    assert body.count("<!-- mh:") == 4 + 2 * len(unpicked) and "<!-- mh-edition:2026-10-20 -->" in body
+    assert "## Not picked since the last edition" in body and "### AI" in body and "/radar.html" in body
 
-    ticked = _tick(_tick(_tick(body, a, "up"), b, "down"), miss, "want")
+    ticked = _tick(_tick(_tick(_tick(body, a, "up"), b, "down"), want, "want"), skip, "skip")
     assert parse_labels(ticked) == {a: {"label": 1, "kind": "pick"}, b: {"label": 0, "kind": "pick"},
-                                    miss: {"label": 1, "kind": "miss"}}
+                                    want: {"label": 1, "kind": "miss"}, skip: {"label": 0, "kind": "miss"}}
+    assert skip not in parse_labels(_tick(_tick(body, skip, "want"), skip, "skip"))  # both boxes: no label
 
     issue = {"number": 1, "body": ticked}
 
@@ -241,17 +252,20 @@ def test_ratings_from_issue_checkboxes(project):
     client = httpx.Client(transport=httpx.MockTransport(handler))
     env = {"GITHUB_TOKEN": "t", "GITHUB_REPOSITORY": "me/microhot"}
     result = collect_labels(project, store, env, now=NOW, client=client)
-    assert result["labels"] == 3 and result["changed"] == 3
+    assert result["labels"] == 4 and result["changed"] == 4
     rows = read_jsonl(project.data_dir / "labels.jsonl")
-    assert {r["event"] for r in rows} == {a, b, miss} and all(r["score"] is not None for r in rows)
+    assert {r["event"] for r in rows} == {a, b, want, skip}
+    assert all(r["score"] is not None and r["raw"] is not None and "topics" in r for r in rows)
 
     scores = evaluate(project, store)
-    assert scores["picks_rated"] == 2 and scores["precision"] == 0.5 and scores["misses_wanted"] == 1
-    assert any("precision of picks: 50%" in line for line in eval_lines(scores))
-    project.raw["feedback"]["min_labels"] = 3
-    assert evaluate(project, store)["suggestions"]["T1"]["suggested"] is not None
+    assert scores["picks_rated"] == 2 and scores["precision"] == 0.5
+    assert scores["misses_wanted"] == 1 and scores["misses_skipped"] == 1
+    lines = eval_lines(scores)
+    assert any("precision of picks: 50%" in line for line in lines)
+    assert any("beat ai: 3 ratings (2 👍, 1 👎); a suggestion needs 10" in line for line in lines)
+    assert scores["topics"] == []  # too few ratings
 
-    issue["body"] = _tick(body, a, "up")  # the 👎 and the near-miss tick were removed
+    issue["body"] = _tick(body, a, "up")  # the other ticks were removed
     assert collect_labels(project, store, env, now=NOW, client=client)["labels"] == 1
     assert collect_labels(project, store, {}, now=NOW)["status"].startswith("skipped")
 

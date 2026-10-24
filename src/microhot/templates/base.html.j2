@@ -20,6 +20,7 @@
   <nav class="nav">
     <a href="{{ prefix }}/"{% if page == 'today' %} aria-current="page"{% endif %}>{{ t('nav_today') }}</a>
     <a href="{{ prefix }}/editions.html"{% if page in ('editions', 'edition') %} aria-current="page"{% endif %}>{{ t('nav_editions') }}</a>
+    <a href="{{ prefix }}/radar.html"{% if page == 'radar' %} aria-current="page"{% endif %}>{{ t('nav_radar') }}</a>
     <a href="{{ prefix }}/topics.html"{% if page == 'topics' %} aria-current="page"{% endif %}>{{ t('nav_topics') }}</a>
     <a href="{{ prefix }}/search.html"{% if page == 'search' %} aria-current="page"{% endif %}>{{ t('nav_search') }}</a>
     <a href="{{ prefix }}/about.html"{% if page == 'about' %} aria-current="page"{% endif %}>{{ t('nav_about') }}</a>

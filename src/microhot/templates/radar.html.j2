@@ -1,0 +1,17 @@
+{% extends "base.html.j2" %}
+{% block title %}{{ t('notpicked_title') }} | {{ site_name }}{% endblock %}
+{% block main %}
+<section class="day" aria-labelledby="notpicked-title">
+  <h1 id="notpicked-title">{{ t('notpicked_title') }}</h1>
+  <p class="note">{{ t('notpicked_note', days=archive_days) }}</p>
+</section>
+{% if days %}
+<ul class="edition-list day-list">
+  {% for d in days %}
+  <li><a href="{{ prefix }}/r/{{ d.date }}.html">{{ d.label }}</a> <span class="meta-inline">{% if d.total == 1 %}{{ t('story_1') }}{% else %}{{ t('stories_n', n=d.total) }}{% endif %}{% if d.counts|length > 1 %}: {% for label, n in d.counts %}{{ label }} {{ n }}{% if not loop.last %}{{ t('list_sep') }}{% endif %}{% endfor %}{% endif %}</span></li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="empty">{{ t('notpicked_empty') }}</p>
+{% endif %}
+{% endblock %}
