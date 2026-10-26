@@ -395,6 +395,7 @@ id = "hicks-morley"
 name = "Hicks Morley (Ontario public-sector law: AI, privacy and access only)"
 url = "https://hicksmorley.com/feed/"
 homepage = "https://hicksmorley.com/"
+enabled = false
 beat = "ca"
 tier = "T2"
 include = ['artificial intelligence', '\bA\.?I\b', 'algorithm', 'automated', 'privacy', 'personal (health )?information', 'FIPPA', 'MFIPPA', 'PHIPA', 'freedom of information', 'cyber', 'Digital Security and Trust', 'Bill 194', 'surveillance', 'electronic monitoring']
