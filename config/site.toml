@@ -32,7 +32,7 @@ daily_quota = 5
 why = true
 # A lower bar than the other beats, so official announcements and substantial legal or policy
 # analysis get in; the quota keeps the volume down. Check "Near misses" on the About page.
-thresholds = { T1 = 55, "T1.5" = 60, T2 = 68 }
+thresholds = { T1 = 47, "T1.5" = 52, T2 = 60 }
 
 [beats.gov]
 label_en = "Governance & policy"
